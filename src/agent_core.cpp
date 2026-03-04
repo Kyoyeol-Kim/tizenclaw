@@ -6,7 +6,7 @@
 #endif
 #define LOG_TAG "TizenClaw_AgentCore"
 
-AgentCore::AgentCore() : m_initialized(false) {
+AgentCore::AgentCore() : m_container(new ContainerEngine()), m_initialized(false) {
     // Constructor
 }
 
@@ -19,7 +19,11 @@ bool AgentCore::Initialize() {
 
     dlog_print(DLOG_INFO, LOG_TAG, "AgentCore Initializing...");
     
-    // TODO: Load planner configurations
+    if (!m_container->Initialize()) {
+        dlog_print(DLOG_ERROR, LOG_TAG, "Failed to initialize LXC Container Engine");
+        return false;
+    }
+
     // TODO: Prepare local context for LLM
 
     m_initialized = true;
@@ -31,7 +35,8 @@ void AgentCore::Shutdown() {
 
     dlog_print(DLOG_INFO, LOG_TAG, "AgentCore Shutting down...");
     
-    // TODO: Cleanup memory, stop pending plans
+    m_container.reset();
+    
     m_initialized = false;
 }
 
@@ -45,5 +50,7 @@ void AgentCore::ProcessPrompt(const std::string& prompt) {
 
     // TODO: Send prompt to LLM (via MCP or local inference)
     // TODO: Parse the plan
-    // TODO: Execute skills via Container Engine
+    
+    // For now, statically start a mock skills container to test Pipeline
+    m_container->StartContainer("tizenclaw_skill_vm", "/opt/usr/apps/org.tizen.tizenclaw/data/rootfs.tar.gz");
 }

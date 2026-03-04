@@ -5,6 +5,8 @@
 #include <vector>
 #include <memory>
 
+#include "container_engine.h"
+
 class AgentCore {
 public:
     AgentCore();
@@ -20,7 +22,7 @@ public:
     void ProcessPrompt(const std::string& prompt);
 
 private:
-    // Internal state and helper methods can be added here
+    std::unique_ptr<ContainerEngine> m_container;
     bool m_initialized;
 };
 

@@ -15,6 +15,7 @@ pkg_check_modules(APPFW_DEPS REQUIRED capi-appfw-service-application dlog)
 set(UNIT_TEST_SRCS
     main.cc
     agent_core_test.cc
+    container_engine_test.cc
 )
 
 # Mock Sources
@@ -25,6 +26,7 @@ set(MOCK_SRCS
 # Main project sources to test (excluding main())
 set(CORE_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/../../src/agent_core.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/container_engine.cpp
 )
 
 add_executable(tizenclaw-unittests
