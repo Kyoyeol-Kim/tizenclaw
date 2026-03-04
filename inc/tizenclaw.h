@@ -3,6 +3,7 @@
 
 #include <dlog.h>
 #include <service_app.h>
+#include "agent_core.h"
 
 #ifdef  LOG_TAG
 #undef  LOG_TAG
@@ -11,7 +12,7 @@
 
 // Application state structure
 struct appdata {
-    // Add runtime engine variables, LXC references, MCP configs here
+    AgentCore* agent;
     bool is_running;
 };
 

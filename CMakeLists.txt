@@ -32,6 +32,7 @@ add_definitions("-DAPP_DATA_DIR=\"${APP_DATA_DIR}\"")
 # Source files
 set(SOURCES
     src/tizenclaw.cpp
+    src/agent_core.cpp
 )
 
 # Executable

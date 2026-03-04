@@ -9,8 +9,12 @@ bool service_app_create(void *data) {
     dlog_print(DLOG_INFO, LOG_TAG, "TizenClaw Service Created.");
 
     ad->is_running = true;
+    ad->agent = new AgentCore();
+    
+    if (!ad->agent->Initialize()) {
+        dlog_print(DLOG_ERROR, LOG_TAG, "Failed to initialize AgentCore");
+    }
 
-    // TODO: Initialize Agent Core (Planner)
     // TODO: Initialize LXC Container Engine
     // TODO: Start MCP Server connection
 
@@ -23,6 +27,12 @@ void service_app_terminate(void *data) {
     dlog_print(DLOG_INFO, LOG_TAG, "TizenClaw Service Terminated.");
 
     ad->is_running = false;
+
+    if (ad->agent) {
+        ad->agent->Shutdown();
+        delete ad->agent;
+        ad->agent = nullptr;
+    }
 
     // TODO: Cleanup LXC processes and MCP sockets here
 }
@@ -41,7 +51,18 @@ void service_app_control(app_control_h app_control, void *data) {
     if (app_control_get_operation(app_control, &operation) == APP_CONTROL_ERROR_NONE) {
         dlog_print(DLOG_INFO, LOG_TAG, "Operation: %s", operation);
 
-        // Here we will eventually intercept commands, parse intents, and pass them to Agent Core
+        char *extra_data = nullptr;
+        if (app_control_get_extra_data(app_control, "prompt", &extra_data) == APP_CONTROL_ERROR_NONE) {
+            std::string prompt(extra_data);
+            dlog_print(DLOG_INFO, LOG_TAG, "Received Prompt through AppControl: %s", prompt.c_str());
+            
+            if (ad->agent) {
+                ad->agent->ProcessPrompt(prompt);
+            }
+            free(extra_data);
+        } else {
+            dlog_print(DLOG_INFO, LOG_TAG, "No 'prompt' extra data found in AppControl");
+        }
     }
 
     if (caller_id) free(caller_id);
@@ -57,7 +78,7 @@ void service_app_region_changed(app_event_info_h event_info, void *user_data) {
 }
 
 int main(int argc, char *argv[]) {
-    appdata ad = {false};
+    appdata ad = {nullptr, false};
     service_app_lifecycle_callback_s event_callback = {0,};
 
     event_callback.create = service_app_create;
