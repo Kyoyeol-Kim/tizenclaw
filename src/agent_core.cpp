@@ -30,13 +30,13 @@ bool AgentCore::Initialize() {
         return false;
     }
 
-    std::ifstream key_file("/usr/apps/org.tizen.tizenclaw/data/gemini_api_key.txt");
+    std::ifstream key_file("/opt/usr/share/tizenclaw/gemini_api_key.txt");
     if (key_file.is_open()) {
         std::getline(key_file, m_gemini_api_key);
         dlog_print(DLOG_INFO, LOG_TAG, "Loaded Gemini API Key (Length: %zu)", m_gemini_api_key.length());
         key_file.close();
     } else {
-        dlog_print(DLOG_ERROR, LOG_TAG, "Gemini API key file not found: /usr/apps/org.tizen.tizenclaw/data/gemini_api_key.txt");
+        dlog_print(DLOG_ERROR, LOG_TAG, "Gemini API key file not found: /opt/usr/share/tizenclaw/gemini_api_key.txt");
     }
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -96,12 +96,12 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
 
 std::string AgentCore::QueryGemini(const std::string& prompt_text) {
     if (m_gemini_api_key.empty()) {
-        dlog_print(DLOG_ERROR, LOG_TAG, "API Key is empty! Please create /usr/apps/org.tizen.tizenclaw/data/gemini_api_key.txt");
+        dlog_print(DLOG_ERROR, LOG_TAG, "API Key is empty! Please create /opt/usr/share/tizenclaw/gemini_api_key.txt");
         return "{}";
     }
     
     std::vector<nlohmann::json> dynamic_functions;
-    const std::string skills_dir = "/usr/apps/org.tizen.tizenclaw/data/skills";
+    const std::string skills_dir = "/opt/usr/share/tizenclaw/skills";
     DIR *dir = opendir(skills_dir.c_str());
     if (dir) {
         struct dirent *ent;
@@ -172,7 +172,7 @@ bool AgentCore::ExecuteSkill(const std::string& skill_name, const nlohmann::json
     dlog_print(DLOG_INFO, LOG_TAG, "Executing skill logic: %s", skill_name.c_str());
     
     // Launching the predefined container environment for Skills execution
-    m_container->StartContainer("tizenclaw_skill_vm", "/usr/apps/org.tizen.tizenclaw/data/rootfs.tar.gz");
+    m_container->StartContainer("tizenclaw_skill_vm", "/opt/usr/share/tizenclaw/rootfs.tar.gz");
     
     // Convert JSON explicitly to a shell-escaped string or just write to temp file
     std::string arg_str = args.dump();
@@ -183,7 +183,7 @@ bool AgentCore::ExecuteSkill(const std::string& skill_name, const nlohmann::json
         pos += 5;
     }
     
-    std::string skill_file = "/usr/apps/org.tizen.tizenclaw/data/skills/" + skill_name + "/" + skill_name + ".py";
+    std::string skill_file = "/opt/usr/share/tizenclaw/skills/" + skill_name + "/" + skill_name + ".py";
     // Using environment variable to pass JSON args generically, avoids quoting issues
     std::string cmd = "CLAW_ARGS='" + arg_str + "' python3 " + skill_file;
     

@@ -55,4 +55,4 @@ enable_testing()
 add_test(NAME TizenClawTests COMMAND tizenclaw-unittests)
 
 # Install test bin (optional, can be installed for runtime)
-install(TARGETS tizenclaw-unittests DESTINATION /usr/apps/org.tizen.tizenclaw/bin)
+install(TARGETS tizenclaw-unittests DESTINATION /usr/bin)

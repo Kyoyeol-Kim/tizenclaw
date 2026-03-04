@@ -17,7 +17,7 @@
 - **MCP (Model Context Protocol) 연동**: 모델과의 Context 교환을 원활하게 하기 위해 외부 또는 로컬의 MCP 서버와 연결되는 인터페이스를 제공해야 합니다.
 
 ### 3.2. Skills 구동 환경 및 호환성 (Skills Execution & Compatibility)
-- **Skills 디렉터리 사용**: Tizen 내 `/usr/apps/org.tizen.tizenclaw/data/skills/` (또는 하위 경로)에 스킬 스크립트를 위치시키고 이를 동적으로 로드하여 사용할 수 있어야 합니다.
+- **Skills 디렉터리 사용**: Tizen 내 `/opt/usr/share/tizenclaw/skills/` (또는 하위 경로)에 스킬 스크립트를 위치시키고 이를 동적으로 로드하여 사용할 수 있어야 합니다.
 - **Tizen C API 연동**: Tizen Device C API를 스킬에서 접근할 수 있도록 Python 또는 Node.js 래퍼(Wrapper/Bindings) 제공이 필요합니다. 
   - *접근 전략*: 10.0의 Core API(System Info, Network 등)부터 하나씩 단계적으로 래핑(Wrapping) 작업을 진행합니다.
 - **OpenClaw 배포 스킬 호환성**: OpenClaw의 스킬팩이 Tizen 내부에서도 약간의 수정 내지 원활히 동작할 수 있어야 합니다.
