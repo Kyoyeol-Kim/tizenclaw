@@ -39,9 +39,33 @@ bool ContainerEngine::StartContainer(const std::string& container_name, const st
     dlog_print(DLOG_INFO, LOG_TAG, "Creating Container via runc: %s with config in: %s", 
                container_name.c_str(), rootfs_path.c_str());
 
+    // 1. Prepare bundle directory
+    std::string bundle_dir = "/opt/usr/home/owner/share/tizenclaw/bundles/" + container_name;
+    std::string mkdir_cmd = "mkdir -p " + bundle_dir + "/rootfs";
+    std::system(mkdir_cmd.c_str());
+
+    // 2. Extract rootfs if it doesn't exist
+    // In Phase 3, we expect rootfs_path to point to /opt/usr/apps/.../data/rootfs.tar.gz
+    // We will extract it if the target directory is empty
+    std::string extract_cmd = "if [ ! -f " + bundle_dir + "/.extracted ]; then "
+                              "tar -xzf " + rootfs_path + " -C " + bundle_dir + "/rootfs && "
+                              "touch " + bundle_dir + "/.extracted; fi";
+    dlog_print(DLOG_INFO, LOG_TAG, "Extracting RootFS: %s", extract_cmd.c_str());
+    int ext_ret = std::system(extract_cmd.c_str());
+    if (ext_ret != 0) {
+        dlog_print(DLOG_WARN, LOG_TAG, "Failed to extract rootfs! Return code: %d", ext_ret);
+    }
+
+    // 3. Generate a basic config.json if it doesn't exist
+    std::string config_file = bundle_dir + "/config.json";
+    std::string config_cmd = "if [ ! -f " + config_file + " ]; then "
+                             "echo '{\"ociVersion\": \"1.0.2\", \"process\": {\"args\": [\"/bin/bash\"]}, "
+                             "\"root\": {\"path\": \"rootfs\", \"readonly\": false}}' > " + config_file + "; fi";
+    std::system(config_cmd.c_str());
+
     // runc expects a config.json in the bundle directory.
-    // For Phase 2 mock testing, we just simulate the command.
-    std::string run_cmd = "runc --root /tmp/runc run -b " + rootfs_path + " -d " + container_name;
+    // For now we simulate the command, pointing to the bundle
+    std::string run_cmd = "runc --root /tmp/runc run -b " + bundle_dir + " -d " + container_name;
     dlog_print(DLOG_INFO, LOG_TAG, "Executing: %s", run_cmd.c_str());
 
     // Using std::system() for basic execution. In production, fork() and exec() or popen() 
