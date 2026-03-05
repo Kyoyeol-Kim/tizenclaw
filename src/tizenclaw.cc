@@ -4,6 +4,11 @@
 #include <string>
 #include <csignal>
 #include <exception>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
+#include <cstring>
+#include <vector>
 
 TizenClawDaemon* g_daemon = nullptr;
 
@@ -57,10 +62,24 @@ void TizenClawDaemon::OnCreate() {
 
     // TODO: Initialize LXC Container Engine
     // TODO: Start MCP Server connection
+    
+    ipc_running_ = true;
+    ipc_thread_ = std::thread(&TizenClawDaemon::IpcServerLoop, this);
 }
 
 void TizenClawDaemon::OnDestroy() {
     dlog_print(DLOG_INFO, LOG_TAG, "TizenClaw Daemon OnDestroy");
+    
+    ipc_running_ = false;
+    if (ipc_socket_ != -1) {
+        shutdown(ipc_socket_, SHUT_RDWR);
+        close(ipc_socket_);
+        ipc_socket_ = -1;
+    }
+    if (ipc_thread_.joinable()) {
+        ipc_thread_.join();
+    }
+
     if (agent_) {
         agent_->Shutdown();
         delete agent_;
@@ -68,6 +87,67 @@ void TizenClawDaemon::OnDestroy() {
     }
     
     // TODO: Cleanup LXC processes and MCP sockets here
+}
+
+void TizenClawDaemon::IpcServerLoop() {
+    dlog_print(DLOG_INFO, LOG_TAG, "IPC Server thread starting...");
+    
+    int sock = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (sock < 0) {
+        dlog_print(DLOG_ERROR, LOG_TAG, "Failed to create IPC socket");
+        return;
+    }
+    ipc_socket_ = sock;
+    
+    struct sockaddr_un addr;
+    std::memset(&addr, 0, sizeof(addr));
+    addr.sun_family = AF_UNIX;
+    
+    // Abstract namespace socket
+    const char* socket_path = "\0tizenclaw.ipc";
+    std::memcpy(addr.sun_path, socket_path, 15);
+    
+    if (bind(ipc_socket_, (struct sockaddr*)&addr, sizeof(sa_family_t) + 15) < 0) {
+        dlog_print(DLOG_ERROR, LOG_TAG, "Failed to bind IPC socket");
+        close(ipc_socket_);
+        ipc_socket_ = -1;
+        return;
+    }
+    
+    if (listen(ipc_socket_, 5) < 0) {
+        dlog_print(DLOG_ERROR, LOG_TAG, "Failed to listen on IPC socket");
+        close(ipc_socket_);
+        ipc_socket_ = -1;
+        return;
+    }
+    
+    dlog_print(DLOG_INFO, LOG_TAG, "IPC Server listening on abstract socket \\0tizenclaw.ipc");
+    
+    while (ipc_running_) {
+        int client_sock = accept(ipc_socket_, nullptr, nullptr);
+        if (client_sock < 0) {
+            if (ipc_running_) {
+                dlog_print(DLOG_ERROR, LOG_TAG, "Failed to accept IPC connection");
+            }
+            continue;
+        }
+        
+        std::vector<char> buffer(4096);
+        std::string prompt;
+        ssize_t bytes_read;
+        while ((bytes_read = ::read(client_sock, buffer.data(), buffer.size())) > 0) {
+            prompt.append(buffer.data(), bytes_read);
+        }
+        
+        close(client_sock);
+        
+        if (!prompt.empty() && agent_) {
+            dlog_print(DLOG_INFO, LOG_TAG, "Received IPC prompt: %s", prompt.c_str());
+            agent_->ProcessPrompt(prompt);
+        }
+    }
+    
+    dlog_print(DLOG_INFO, LOG_TAG, "IPC Server thread exiting...");
 }
 
 int main(int argc, char *argv[]) {

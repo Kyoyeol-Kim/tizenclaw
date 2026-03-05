@@ -8,43 +8,22 @@ launch requests directed to the TizenClaw service (org.tizen.tizenclaw).
 import urllib.request
 import urllib.parse
 import json
-import ctypes
+import socket
 import sys
 import time
 import os
 
 def send_prompt_to_tizenclaw(prompt_text):
     try:
-        libappcontrol = ctypes.CDLL("libcapi-appfw-app-control.so.0")
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        # The abstract namespace socket starts with a null byte
+        sock.connect("\0tizenclaw.ipc")
+        sock.sendall(prompt_text.encode('utf-8'))
+        sock.close()
+        return True
     except OSError as e:
-        print(f"Error loading libcapi-appfw-app-control: {e}")
+        print(f"Error connecting to TizenClaw IPC socket: {e}")
         return False
-
-    app_control_h = ctypes.c_void_p()
-    
-    app_control_create = libappcontrol.app_control_create
-    app_control_create.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
-    
-    app_control_set_app_id = libappcontrol.app_control_set_app_id
-    app_control_set_app_id.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
-    
-    app_control_add_extra_data = libappcontrol.app_control_add_extra_data
-    app_control_add_extra_data.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p]
-    
-    app_control_send_launch_request = libappcontrol.app_control_send_launch_request
-    app_control_send_launch_request.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
-    
-    app_control_destroy = libappcontrol.app_control_destroy
-    app_control_destroy.argtypes = [ctypes.c_void_p]
-    
-    libappcontrol.app_control_create(ctypes.byref(app_control_h))
-    libappcontrol.app_control_set_app_id(app_control_h, b"org.tizen.tizenclaw")
-    libappcontrol.app_control_add_extra_data(app_control_h, b"prompt", prompt_text.encode('utf-8'))
-    
-    ret = libappcontrol.app_control_send_launch_request(app_control_h, None, None)
-    
-    libappcontrol.app_control_destroy(app_control_h)
-    return ret == 0
 
 def poll_telegram_bot(token):
     offset = 0
