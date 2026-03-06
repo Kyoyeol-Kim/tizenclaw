@@ -27,6 +27,10 @@ private:
     // Main loop for fetching updates using long-polling
     void PollingLoop();
 
+    // Async handler: processes a single message on a worker thread
+    void HandleMessage(long chat_id,
+                       const std::string& text);
+
     // Parses telegram_config.json
     bool LoadConfig();
 
@@ -44,6 +48,10 @@ private:
     std::thread polling_thread_;
     std::atomic<bool> running_;
     long update_offset_ = 0;
+
+    // Concurrency control for message handlers
+    std::atomic<int> active_handlers_{0};
+    static constexpr int kMaxConcurrentHandlers = 3;
 };
 
 } // namespace tizenclaw

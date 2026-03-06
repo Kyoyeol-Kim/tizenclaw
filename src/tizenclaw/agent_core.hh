@@ -98,6 +98,10 @@ private:
 
     SessionStore session_store_;
     ToolPolicy tool_policy_;
+
+    // Cached skill declarations
+    std::vector<LlmToolDecl> cached_tools_;
+    bool cached_tools_loaded_ = false;
 };
 
 } // namespace tizenclaw

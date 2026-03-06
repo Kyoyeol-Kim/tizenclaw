@@ -471,6 +471,11 @@ std::string AgentCore::ExecuteFileOp(
 
 std::vector<LlmToolDecl>
 AgentCore::LoadSkillDeclarations() {
+  // Return cached declarations after first load
+  if (cached_tools_loaded_) {
+    return cached_tools_;
+  }
+
   std::vector<LlmToolDecl> tools;
   const std::string skills_dir =
       "/opt/usr/share/tizenclaw/skills";
@@ -571,6 +576,8 @@ AgentCore::LoadSkillDeclarations() {
   };
   tools.push_back(file_tool);
 
+  cached_tools_ = tools;
+  cached_tools_loaded_ = true;
   return tools;
 }
 

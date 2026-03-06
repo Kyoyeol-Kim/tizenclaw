@@ -220,79 +220,104 @@ void TelegramClient::PollingLoop() {
 
                 LOG(INFO) << "Received from " << chat_id << ": " << text;
 
-                // Send initial placeholder
-                std::string url_send =
-                    "https://api.telegram.org/bot" +
-                    bot_token_ + "/sendMessage";
-                nlohmann::json init_payload = {
-                    {"chat_id", chat_id},
-                    {"text", "\u23f3 Thinking..."}
-                };
-                auto init_resp = HttpClient::Post(
-                    url_send,
-                    {{"Content-Type",
-                      "application/json"}},
-                    init_payload.dump());
-
-                long msg_id = 0;
-                if (init_resp.success) {
-                    try {
-                        auto jr = nlohmann::json
-                            ::parse(init_resp.body);
-                        msg_id = jr["result"]
-                            .value("message_id", 0L);
-                    } catch (...) {}
+                // Check concurrent handler limit
+                if (active_handlers_.load() >=
+                    kMaxConcurrentHandlers) {
+                    LOG(WARNING) << "Max handlers reached, sending busy reply";
+                    SendMessage(chat_id,
+                        "\u26a0\ufe0f Busy processing other "
+                        "requests. Please try again "
+                        "shortly.");
+                    continue;
                 }
 
-                // Streaming callback with throttled edits
-                std::string accumulated;
-                std::mutex acc_mutex;
-                auto last_edit =
-                    std::chrono::steady_clock::now();
-
-                auto on_chunk = [&](
-                    const std::string& chunk) {
-                    if (msg_id == 0) return;
-                    std::lock_guard<std::mutex> lock(
-                        acc_mutex);
-                    accumulated += chunk;
-                    auto now =
-                        std::chrono::steady_clock
-                            ::now();
-                    auto elapsed =
-                        std::chrono::duration_cast<
-                            std::chrono::
-                                milliseconds>(
-                            now - last_edit)
-                            .count();
-                    if (elapsed >= 1000) {
-                        EditMessage(chat_id, msg_id,
-                                    accumulated);
-                        last_edit = now;
-                    }
-                };
-
-                std::string session_id =
-                    "telegram_" +
-                    std::to_string(chat_id);
-                std::string response =
-                    agent_->ProcessPrompt(
-                        session_id, text,
-                        on_chunk);
-
-                // Final update with complete response
-                if (msg_id > 0) {
-                    EditMessage(chat_id, msg_id,
-                                response);
-                } else {
-                    SendMessage(chat_id, response);
-                }
+                // Dispatch to worker thread
+                // (non-blocking — polling loop
+                //  continues immediately)
+                active_handlers_.fetch_add(1);
+                std::thread([this, chat_id, text]() {
+                    HandleMessage(chat_id, text);
+                    active_handlers_.fetch_sub(1);
+                }).detach();
             }
         } catch (const std::exception& e) {
             LOG(ERROR) << "Polling JSON error: " << e.what();
             std::this_thread::sleep_for(
                 std::chrono::seconds(5));
         }
+    }
+}
+
+void TelegramClient::HandleMessage(
+    long chat_id, const std::string& text) {
+    // Send initial placeholder
+    std::string url_send =
+        "https://api.telegram.org/bot" +
+        bot_token_ + "/sendMessage";
+    nlohmann::json init_payload = {
+        {"chat_id", chat_id},
+        {"text", "\u23f3 Thinking..."}
+    };
+    auto init_resp = HttpClient::Post(
+        url_send,
+        {{"Content-Type",
+          "application/json"}},
+        init_payload.dump());
+
+    long msg_id = 0;
+    if (init_resp.success) {
+        try {
+            auto jr = nlohmann::json
+                ::parse(init_resp.body);
+            msg_id = jr["result"]
+                .value("message_id", 0L);
+        } catch (...) {}
+    }
+
+    // Streaming callback with throttled edits
+    std::string accumulated;
+    std::mutex acc_mutex;
+    auto last_edit =
+        std::chrono::steady_clock::now();
+
+    auto on_chunk = [&](
+        const std::string& chunk) {
+        if (msg_id == 0) return;
+        std::lock_guard<std::mutex> lock(
+            acc_mutex);
+        accumulated += chunk;
+        auto now =
+            std::chrono::steady_clock
+                ::now();
+        auto elapsed =
+            std::chrono::duration_cast<
+                std::chrono::
+                    milliseconds>(
+                now - last_edit)
+                .count();
+        // 2s throttle — reduces Telegram API
+        // rate-limit pressure (429 errors)
+        if (elapsed >= 2000) {
+            EditMessage(chat_id, msg_id,
+                        accumulated);
+            last_edit = now;
+        }
+    };
+
+    std::string session_id =
+        "telegram_" +
+        std::to_string(chat_id);
+    std::string response =
+        agent_->ProcessPrompt(
+            session_id, text,
+            on_chunk);
+
+    // Final update with complete response
+    if (msg_id > 0) {
+        EditMessage(chat_id, msg_id,
+                    response);
+    } else {
+        SendMessage(chat_id, response);
     }
 }
 
