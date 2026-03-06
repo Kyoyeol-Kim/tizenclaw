@@ -190,15 +190,8 @@ def search_google(query, config):
 
 
 def web_search(query, engine=None):
-    """Perform web search with rate limiting."""
+    """Perform web search with rate limiting for Google."""
     config = load_config()
-
-    # Check daily usage limit
-    allowed, remaining, err = (
-        check_and_increment_usage(config)
-    )
-    if not allowed:
-        return {"error": err}
 
     # Determine engine
     if not engine:
@@ -206,13 +199,18 @@ def web_search(query, engine=None):
             "default_engine", "naver"
         )
 
-    # Execute search
+    # Google only: check daily usage limit
     if engine == "google":
+        allowed, remaining, err = (
+            check_and_increment_usage(config)
+        )
+        if not allowed:
+            return {"error": err}
         result = search_google(query, config)
+        result["daily_remaining"] = remaining
     else:
         result = search_naver(query, config)
 
-    result["daily_remaining"] = remaining
     return result
 
 
