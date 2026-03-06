@@ -15,12 +15,16 @@
  */
 
 /**
- * tizenclaw-cli: CLI tool for testing TizenClaw daemon via UDS IPC.
+ * tizenclaw-cli: CLI tool for testing TizenClaw
+ * daemon via UDS IPC.
  *
  * Usage:
  *   tizenclaw-cli "What is the battery level?"
  *   tizenclaw-cli -s my_session "Run a skill"
  *   tizenclaw-cli --stream "Tell me about Tizen"
+ *   tizenclaw-cli --usage daily [YYYY-MM-DD]
+ *   tizenclaw-cli --usage monthly [YYYY-MM]
+ *   tizenclaw-cli --usage session [session_id]
  *   tizenclaw-cli   (interactive mode)
  */
 
@@ -206,16 +210,49 @@ std::string SendRequest(int sock,
   return std::string(buf.data(), resp_len);
 }
 
+// Send raw JSON and receive response
+std::string SendRawJson(int sock,
+                        const std::string& json) {
+  uint32_t net_len = htonl(
+      static_cast<uint32_t>(json.size()));
+  if (!SendAll(sock, &net_len, 4) ||
+      !SendAll(sock, json.data(),
+               json.size())) {
+    std::cerr << "Error: failed to send\n";
+    return "";
+  }
+  uint32_t resp_net_len = 0;
+  if (!RecvExact(sock, &resp_net_len, 4)) {
+    std::cerr << "Error: recv header failed\n";
+    return "";
+  }
+  uint32_t resp_len = ntohl(resp_net_len);
+  if (resp_len > 10 * 1024 * 1024) {
+    std::cerr << "Error: response too large\n";
+    return "";
+  }
+  std::vector<char> buf(resp_len);
+  if (!RecvExact(sock, buf.data(), resp_len)) {
+    std::cerr << "Error: recv body failed\n";
+    return "";
+  }
+  return std::string(buf.data(), resp_len);
+}
+
 void PrintUsage() {
   std::cerr
-      << "tizenclaw-cli — TizenClaw IPC test tool\n\n"
+      << "tizenclaw-cli — TizenClaw IPC test\n\n"
       << "Usage:\n"
       << "  tizenclaw-cli [options] [prompt]\n\n"
       << "Options:\n"
-      << "  -s <id>     Session ID (default: cli_test)\n"
-      << "  --stream    Enable streaming mode\n"
-      << "  -h, --help  Show this help\n\n"
-      << "If no prompt is given, enters interactive mode.\n";
+      << "  -s <id>       Session ID "
+      << "(default: cli_test)\n"
+      << "  --stream      Enable streaming\n"
+      << "  --usage daily [YYYY-MM-DD]\n"
+      << "  --usage monthly [YYYY-MM]\n"
+      << "  --usage session [session_id]\n"
+      << "  -h, --help    Show this help\n\n"
+      << "If no prompt given, interactive mode.\n";
 }
 
 }  // namespace
@@ -235,6 +272,42 @@ int main(int argc, char* argv[]) {
       session_id = argv[++i];
     } else if (arg == "--stream") {
       stream = true;
+    } else if (arg == "--usage" &&
+               i + 1 < argc) {
+      // --usage daily|monthly|session [value]
+      std::string utype = argv[++i];
+      std::string uvalue;
+      if (i + 1 < argc) uvalue = argv[++i];
+
+      int sock = ConnectToSocket();
+      if (sock < 0) return 1;
+
+      std::string json_req =
+          "{\"command\":\"get_usage\","
+          "\"type\":\"" +
+          JsonEscape(utype) + "\"";
+      if (utype == "daily" && !uvalue.empty())
+        json_req +=
+            ",\"date\":\"" +
+            JsonEscape(uvalue) + "\"";
+      else if (utype == "monthly" &&
+               !uvalue.empty())
+        json_req +=
+            ",\"month\":\"" +
+            JsonEscape(uvalue) + "\"";
+      else if (utype == "session" &&
+               !uvalue.empty())
+        json_req +=
+            ",\"session_id\":\"" +
+            JsonEscape(uvalue) + "\"";
+      json_req += "}";
+
+      std::string resp =
+          SendRawJson(sock, json_req);
+      close(sock);
+      if (resp.empty()) return 1;
+      std::cout << resp << "\n";
+      return 0;
     } else {
       // Remaining args are the prompt
       for (int j = i; j < argc; ++j) {

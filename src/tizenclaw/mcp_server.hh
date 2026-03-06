@@ -5,20 +5,35 @@
 #include <vector>
 #include <json.hpp>
 
+#include "channel.hh"
+
 namespace tizenclaw {
 
 class AgentCore;
 
-class McpServer {
+class McpServer : public Channel {
 public:
     explicit McpServer(AgentCore* agent);
 
+    // Channel interface — MCP runs via --mcp-stdio
+    // in a separate process, so Start/Stop are
+    // no-ops in daemon context.
+    std::string GetName() const override {
+      return "mcp";
+    }
+    bool Start() override { return true; }
+    void Stop() override {}
+    bool IsRunning() const override {
+      return false;
+    }
+
     // Run stdio JSON-RPC 2.0 loop (blocking).
-    // Reads from stdin, writes to stdout. Logs to stderr.
+    // Reads from stdin, writes to stdout.
     void RunStdio();
 
-    // Process a single JSON-RPC 2.0 request and return
-    // the response (or null json if notification).
+    // Process a single JSON-RPC 2.0 request and
+    // return the response (or null json if
+    // notification).
     nlohmann::json ProcessRequest(
         const nlohmann::json& request);
 

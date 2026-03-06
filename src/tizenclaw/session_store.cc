@@ -98,6 +98,16 @@ std::string SessionStore::GetUsageDir() const {
   return base + "/usage";
 }
 
+std::string SessionStore::GetDailyUsageDir()
+    const {
+  return GetUsageDir() + "/daily";
+}
+
+std::string SessionStore::GetMonthlyUsageDir()
+    const {
+  return GetUsageDir() + "/monthly";
+}
+
 std::string SessionStore::GetTimestamp() {
   auto now = std::chrono::system_clock::now();
   auto t = std::chrono::system_clock::to_time_t(now);
@@ -787,6 +797,160 @@ void SessionStore::LogTokenUsage(
              << prompt_tokens
              << ", completion="
              << completion_tokens << ")";
+
+  // --- Daily aggregate ---
+  std::string daily_dir = GetDailyUsageDir();
+  EnsureDir(daily_dir);
+  auto now_t = std::chrono::system_clock::now();
+  auto tt =
+      std::chrono::system_clock::to_time_t(now_t);
+  struct tm tm_daily;
+  localtime_r(&tt, &tm_daily);
+  char date_str[16];
+  strftime(date_str, sizeof(date_str),
+           "%Y-%m-%d", &tm_daily);
+  std::string daily_path =
+      daily_dir + "/" + date_str + ".md";
+
+  // Read existing daily aggregate
+  DailyUsageSummary daily;
+  daily.date = date_str;
+  std::string daily_rows;
+  {
+    std::ifstream din(daily_path);
+    if (din.is_open()) {
+      std::string dl;
+      bool in_fm = false;
+      bool past_hdr = false;
+      while (std::getline(din, dl)) {
+        if (dl == "---") {
+          in_fm = !in_fm;
+          continue;
+        }
+        if (in_fm) {
+          if (dl.find("total_prompt_tokens:") == 0)
+            daily.total_prompt_tokens =
+                std::stoi(dl.substr(21));
+          else if (
+              dl.find(
+                  "total_completion_tokens:") == 0)
+            daily.total_completion_tokens =
+                std::stoi(dl.substr(25));
+          else if (
+              dl.find("total_requests:") == 0)
+            daily.total_requests =
+                std::stoi(dl.substr(16));
+        }
+        if (dl.find("|---") == 0) {
+          past_hdr = true;
+          continue;
+        }
+        if (past_hdr && !dl.empty() &&
+            dl[0] == '|') {
+          daily_rows += dl + "\n";
+        }
+      }
+      din.close();
+    }
+  }
+
+  daily.total_prompt_tokens += prompt_tokens;
+  daily.total_completion_tokens +=
+      completion_tokens;
+  daily.total_requests += 1;
+
+  // Rebuild daily file
+  std::ostringstream dmd;
+  dmd << "---\n";
+  dmd << "date: " << date_str << "\n";
+  dmd << "total_prompt_tokens: "
+      << daily.total_prompt_tokens << "\n";
+  dmd << "total_completion_tokens: "
+      << daily.total_completion_tokens << "\n";
+  dmd << "total_requests: "
+      << daily.total_requests << "\n";
+  dmd << "updated: " << GetTimestamp() << "\n";
+  dmd << "---\n\n";
+  dmd << "# Daily Usage " << date_str << "\n\n";
+  dmd << "| Time | Session | Backend | "
+      << "Prompt | Completion |\n";
+  dmd << "|------|---------|---------|--"
+      << "------|------------|\n";
+  if (!daily_rows.empty()) dmd << daily_rows;
+  dmd << "| " << GetTimestamp()
+      << " | " << session_id
+      << " | " << model_name
+      << " | " << prompt_tokens
+      << " | " << completion_tokens << " |\n";
+
+  AtomicWrite(daily_path, dmd.str());
+
+  // --- Monthly aggregate ---
+  std::string monthly_dir = GetMonthlyUsageDir();
+  EnsureDir(monthly_dir);
+  char month_str[16];
+  strftime(month_str, sizeof(month_str),
+           "%Y-%m", &tm_daily);
+  std::string monthly_path =
+      monthly_dir + "/" + month_str + ".md";
+
+  DailyUsageSummary monthly;
+  monthly.date = month_str;
+  {
+    std::ifstream min(monthly_path);
+    if (min.is_open()) {
+      std::string ml;
+      bool in_fm = false;
+      while (std::getline(min, ml)) {
+        if (ml == "---") {
+          in_fm = !in_fm;
+          continue;
+        }
+        if (in_fm) {
+          if (ml.find("total_prompt_tokens:") == 0)
+            monthly.total_prompt_tokens =
+                std::stoi(ml.substr(21));
+          else if (
+              ml.find(
+                  "total_completion_tokens:") == 0)
+            monthly.total_completion_tokens =
+                std::stoi(ml.substr(25));
+          else if (
+              ml.find("total_requests:") == 0)
+            monthly.total_requests =
+                std::stoi(ml.substr(16));
+        }
+      }
+      min.close();
+    }
+  }
+
+  monthly.total_prompt_tokens += prompt_tokens;
+  monthly.total_completion_tokens +=
+      completion_tokens;
+  monthly.total_requests += 1;
+
+  std::ostringstream mmd;
+  mmd << "---\n";
+  mmd << "month: " << month_str << "\n";
+  mmd << "total_prompt_tokens: "
+      << monthly.total_prompt_tokens << "\n";
+  mmd << "total_completion_tokens: "
+      << monthly.total_completion_tokens << "\n";
+  mmd << "total_requests: "
+      << monthly.total_requests << "\n";
+  mmd << "updated: " << GetTimestamp() << "\n";
+  mmd << "---\n\n";
+  mmd << "# Monthly Usage " << month_str
+      << "\n\n";
+  mmd << "**Prompt Tokens**: "
+      << monthly.total_prompt_tokens << "  \n";
+  mmd << "**Completion Tokens**: "
+      << monthly.total_completion_tokens << "  \n";
+  mmd << "**Total Requests**: "
+      << monthly.total_requests << "\n";
+
+  AtomicWrite(monthly_path, mmd.str());
 }
 
 TokenUsageSummary SessionStore::LoadTokenUsage(
@@ -875,6 +1039,59 @@ TokenUsageSummary SessionStore::LoadTokenUsage(
 
   in.close();
   return summary;
+}
+
+// ------------------------------------------------
+// Daily/Monthly Aggregate Usage
+// ------------------------------------------------
+
+static DailyUsageSummary ParseAggregateMd(
+    const std::string& path) {
+  DailyUsageSummary summary;
+  std::ifstream in(path);
+  if (!in.is_open()) return summary;
+
+  std::string line;
+  bool in_fm = false;
+  while (std::getline(in, line)) {
+    if (line == "---") {
+      in_fm = !in_fm;
+      continue;
+    }
+    if (in_fm) {
+      auto colon = line.find(':');
+      if (colon == std::string::npos) continue;
+      std::string key = line.substr(0, colon);
+      std::string val = line.substr(colon + 2);
+      if (key == "date" || key == "month")
+        summary.date = val;
+      else if (key == "total_prompt_tokens")
+        summary.total_prompt_tokens =
+            std::stoi(val);
+      else if (key == "total_completion_tokens")
+        summary.total_completion_tokens =
+            std::stoi(val);
+      else if (key == "total_requests")
+        summary.total_requests =
+            std::stoi(val);
+    }
+  }
+  in.close();
+  return summary;
+}
+
+DailyUsageSummary SessionStore::LoadDailyUsage(
+    const std::string& date) const {
+  std::string path =
+      GetDailyUsageDir() + "/" + date + ".md";
+  return ParseAggregateMd(path);
+}
+
+DailyUsageSummary SessionStore::LoadMonthlyUsage(
+    const std::string& month) const {
+  std::string path =
+      GetMonthlyUsageDir() + "/" + month + ".md";
+  return ParseAggregateMd(path);
 }
 
 } // namespace tizenclaw

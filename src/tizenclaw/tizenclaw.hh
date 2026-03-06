@@ -11,6 +11,7 @@
 #include "telegram_client.hh"
 #include "mcp_server.hh"
 #include "task_scheduler.hh"
+#include "channel_registry.hh"
 #include "../common/logging.hh"
 
 namespace tizenclaw {
@@ -39,9 +40,8 @@ private:
     std::thread ipc_thread_;
     int ipc_socket_;
     bool ipc_running_;
-    TelegramClient* telegram_client_ = nullptr;
-    McpServer* mcp_server_ = nullptr;
     TaskScheduler* scheduler_ = nullptr;
+    ChannelRegistry channel_registry_;
 
     // Concurrency control
     std::atomic<int> active_clients_{0};

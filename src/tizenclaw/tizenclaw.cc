@@ -66,8 +66,12 @@ void TizenClawDaemon::OnCreate() {
         LOG(ERROR) << "Failed to initialize AgentCore";
     }
 
-    // Initialize MCP Server
-    mcp_server_ = new McpServer(agent_);
+    // Register channels
+    channel_registry_.Register(
+        std::make_unique<McpServer>(agent_));
+    channel_registry_.Register(
+        std::make_unique<TelegramClient>(agent_));
+    channel_registry_.StartAll();
 
     // Initialize Task Scheduler
     scheduler_ = new TaskScheduler();
@@ -75,24 +79,15 @@ void TizenClawDaemon::OnCreate() {
     scheduler_->Start(agent_);
     
     ipc_running_ = true;
-    ipc_thread_ = std::thread(&TizenClawDaemon::IpcServerLoop, this);
-
-    // Start Native Telegram Client
-    telegram_client_ = new TelegramClient(agent_);
-    if (!telegram_client_->Start()) {
-        LOG(WARNING) << "Telegram client not started (config may be missing)";
-    }
+    ipc_thread_ = std::thread(
+        &TizenClawDaemon::IpcServerLoop, this);
 }
 
 void TizenClawDaemon::OnDestroy() {
     LOG(INFO) << "TizenClaw Daemon OnDestroy";
 
-    // Stop Native Telegram Client
-    if (telegram_client_) {
-        telegram_client_->Stop();
-        delete telegram_client_;
-        telegram_client_ = nullptr;
-    }
+    // Stop all channels
+    channel_registry_.StopAll();
 
     ipc_running_ = false;
     if (ipc_socket_ != -1) {
@@ -104,9 +99,10 @@ void TizenClawDaemon::OnDestroy() {
         ipc_thread_.join();
     }
 
-    // Wait for all active client threads to finish
+    // Wait for all active client threads
     {
-        std::lock_guard<std::mutex> lock(threads_mutex_);
+        std::lock_guard<std::mutex> lock(
+            threads_mutex_);
         for (auto& t : client_threads_) {
             if (t.joinable()) {
                 t.join();
@@ -128,10 +124,6 @@ void TizenClawDaemon::OnDestroy() {
         delete scheduler_;
         scheduler_ = nullptr;
     }
-    
-    // Cleanup MCP Server
-    delete mcp_server_;
-    mcp_server_ = nullptr;
 }
 
 void TizenClawDaemon::IpcServerLoop() {
@@ -322,8 +314,73 @@ void TizenClawDaemon::HandleIpcClient(int client_sock) {
             auto req = nlohmann::json::parse(raw_msg);
 
             std::string session_id = req.value("session_id", "default");
-            std::string prompt = req.value("text", "");
-            bool stream_requested = req.value("stream", false);
+            std::string command = req.value("command", "");
+
+            // Handle get_usage command
+            if (command == "get_usage") {
+                std::string usage_type =
+                    req.value("type", "daily");
+                auto& store =
+                    agent_->GetSessionStore();
+
+                if (usage_type == "session") {
+                    std::string sid =
+                        req.value("session_id",
+                                  "default");
+                    auto s = store.LoadTokenUsage(
+                        sid);
+                    response_json = {
+                        {"type", "usage"},
+                        {"usage_type", "session"},
+                        {"session_id", sid},
+                        {"prompt_tokens",
+                         s.total_prompt_tokens},
+                        {"completion_tokens",
+                         s.total_completion_tokens},
+                        {"entries",
+                         (int)s.entries.size()},
+                        {"status", "ok"}};
+                } else if (usage_type == "monthly") {
+                    std::string month =
+                        req.value("month", "");
+                    auto s =
+                        store.LoadMonthlyUsage(
+                            month);
+                    response_json = {
+                        {"type", "usage"},
+                        {"usage_type", "monthly"},
+                        {"month", month},
+                        {"prompt_tokens",
+                         s.total_prompt_tokens},
+                        {"completion_tokens",
+                         s.total_completion_tokens},
+                        {"total_requests",
+                         s.total_requests},
+                        {"status", "ok"}};
+                } else {
+                    // Default: daily
+                    std::string date =
+                        req.value("date", "");
+                    auto s =
+                        store.LoadDailyUsage(date);
+                    response_json = {
+                        {"type", "usage"},
+                        {"usage_type", "daily"},
+                        {"date", date},
+                        {"prompt_tokens",
+                         s.total_prompt_tokens},
+                        {"completion_tokens",
+                         s.total_completion_tokens},
+                        {"total_requests",
+                         s.total_requests},
+                        {"status", "ok"}};
+                }
+            } else {
+            // Normal prompt processing
+            std::string prompt =
+                req.value("text", "");
+            bool stream_requested =
+                req.value("stream", false);
 
             if (prompt.empty()) {
                 response_json = {
@@ -364,6 +421,7 @@ void TizenClawDaemon::HandleIpcClient(int client_sock) {
                     {"text", result}
                 };
             }
+            } // end else (normal prompt)
         } catch (const nlohmann::json::exception& e) {
             LOG(WARNING) << "Non-JSON IPC msg, treating as plain text";
             std::string result = agent_->ProcessPrompt("default", raw_msg);

@@ -6,22 +6,28 @@
 #include <thread>
 #include <atomic>
 
+#include "channel.hh"
+
 namespace tizenclaw {
 
 
 // Forward declaration
 class AgentCore;
 
-class TelegramClient {
+class TelegramClient : public Channel {
 public:
     explicit TelegramClient(AgentCore* agent);
     ~TelegramClient();
 
-    // Loads config and starts the background polling thread
-    bool Start();
-
-    // Signals the thread to stop and joins it
-    void Stop();
+    // Channel interface
+    std::string GetName() const override {
+      return "telegram";
+    }
+    bool Start() override;
+    void Stop() override;
+    bool IsRunning() const override {
+      return running_;
+    }
 
 private:
     // Main loop for fetching updates using long-polling

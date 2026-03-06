@@ -54,6 +54,7 @@ set(SOURCES
     src/tizenclaw/key_store.cc
     src/tizenclaw/audit_logger.cc
     src/tizenclaw/task_scheduler.cc
+    src/tizenclaw/channel_registry.cc
 )
 
 # Executable

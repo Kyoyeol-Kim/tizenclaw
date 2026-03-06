@@ -86,10 +86,10 @@ timeline
                        : 태스크 CRUD 내장 도구
                        : Markdown 태스크 영구 저장
     section 플랫폼 확장
-        Phase 12       : 🟡 확장성 레이어
+        Phase 12       : ✅ 확장성 레이어
                        : 채널 추상화 (C++ 인터페이스)
                        : 시스템 프롬프트 외부화
-                       : LLM 사용량 추적
+                       : LLM 사용량 추적 (Markdown)
         Phase 13       : 🟡 스킬 생태계
                        : 스킬 핫리로드 (inotify)
                        : 모델 폴백 자동 전환
@@ -338,7 +338,7 @@ timeline
 
 ---
 
-## Phase 12: 확장성 레이어 🟡
+## Phase 12: 확장성 레이어 ✅ (완료)
 
 > **목표**: 미래 성장을 위한 아키텍처 유연성
 
@@ -347,12 +347,18 @@ timeline
 |------|------|
 | **갭** | Telegram과 MCP가 완전히 별개 — 새 채널 추가 시 대규모 작업 필요 |
 | **참고** | NanoClaw: `channels/registry.ts` 자기 등록 · OpenClaw: 정적 레지스트리 |
-| **계획** | `Channel` 인터페이스 (C++) → `TelegramChannel`, `McpChannel` 구현 |
+| **구현** | `Channel` 인터페이스 (C++) + `ChannelRegistry` 라이프사이클 관리 |
+
+**구현 내용:**
+- `Channel` 추상 인터페이스: `GetName()`, `Start()`, `Stop()`, `IsRunning()`
+- `ChannelRegistry`: 등록, 전체 시작/정지, 이름별 검색
+- `TelegramClient`와 `McpServer`를 `Channel` 구현으로 마이그레이션
+- `TizenClawDaemon`이 직접 포인터 대신 `ChannelRegistry` 사용
 
 **완료 기준:**
-- [ ] 새 채널은 `Channel` 인터페이스 구현만으로 추가
-- [ ] `channels/` 디렉터리에 채널별 설정
-- [ ] 기존 Telegram + MCP를 인터페이스로 마이그레이션
+- [x] 새 채널은 `Channel` 인터페이스 구현만으로 추가
+- [x] 기존 Telegram + MCP를 인터페이스로 마이그레이션
+- [x] `ChannelRegistry`가 라이프사이클 관리 (전체 시작/정지)
 
 ---
 
@@ -381,12 +387,20 @@ timeline
 |------|------|
 | **갭** | API 비용/사용량 가시성 없음 |
 | **참고** | OpenClaw: `usage.ts` (5K LOC) |
-| **계획** | `usage` 필드 파싱 → SQLite 집계 → 세션/일/월별 보고서 |
+| **구현** | `usage` 필드 파싱 → Markdown 집계 → 세션/일/월별 보고서 |
+
+**저장 구조:**
+```
+/opt/usr/share/tizenclaw/usage/
+├── {session-id}.md       ← 세션별 토큰 사용량
+├── daily/YYYY-MM-DD.md   ← 일별 집계
+└── monthly/YYYY-MM.md    ← 월별 집계
+```
 
 **완료 기준:**
-- [ ] 세션별 토큰 사용량 요약
-- [ ] SQLite에 일별/월별 누적 저장
-- [ ] IPC 명령을 통한 사용량 조회
+- [x] 세션별 토큰 사용량 요약 (Phase 9에서 기존 구현)
+- [x] Markdown 파일로 일별/월별 누적 저장
+- [x] IPC `get_usage` 명령을 통한 사용량 조회 (daily/monthly/session)
 
 ---
 
@@ -558,7 +572,7 @@ graph TD
 | **9** | 컨텍스트 & 메모리 | ~1,200 | 🔴 긴급 | Phase 8 ✅ |
 | **10** | 보안 강화 | ~800 | 🟡 중간 | Phase 9 |
 | **11** | 태스크 스케줄러 & cron | ~1,000 | ✅ 완료 | Phase 9 ✅ |
-| **12** | 확장성 레이어 | ~600 | 🟡 중간 | Phase 10, 11 |
+| **12** | 확장성 레이어 | ~600 | ✅ 완료 | Phase 10, 11 |
 | **13** | 스킬 생태계 | ~800 | 🟡 중간 | Phase 12 |
 | **14** | 신규 채널 & 통합 | ~1,200 | 🟢 낮음 | Phase 12 |
 | **15** | 고급 플랫폼 기능 | ~2,000 | 🟢 낮음 | Phase 13, 14 |

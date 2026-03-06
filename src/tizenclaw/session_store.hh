@@ -35,6 +35,21 @@ struct TokenUsageSummary {
   std::vector<TokenUsageEntry> entries;
 };
 
+// Daily/Monthly aggregated usage summary
+struct DailyUsageSummary {
+  std::string date;  // YYYY-MM-DD or YYYY-MM
+  int total_prompt_tokens = 0;
+  int total_completion_tokens = 0;
+  int total_requests = 0;
+  struct BackendEntry {
+    std::string backend;
+    int requests = 0;
+    int prompt_tokens = 0;
+    int completion_tokens = 0;
+  };
+  std::vector<BackendEntry> backends;
+};
+
 
 class SessionStore {
 public:
@@ -76,6 +91,14 @@ public:
     TokenUsageSummary LoadTokenUsage(
         const std::string& session_id);
 
+    // Load daily aggregate usage
+    DailyUsageSummary LoadDailyUsage(
+        const std::string& date) const;
+
+    // Load monthly aggregate usage
+    DailyUsageSummary LoadMonthlyUsage(
+        const std::string& month) const;
+
 private:
     // Find existing session file by scanning
     // dir for *-{session_id}.md pattern
@@ -89,6 +112,8 @@ private:
         const std::string& session_id) const;
     std::string GetLogsDir() const;
     std::string GetUsageDir() const;
+    std::string GetDailyUsageDir() const;
+    std::string GetMonthlyUsageDir() const;
 
     // Get current date as YYYY-MM-DD string
     static std::string GetDatePrefix();

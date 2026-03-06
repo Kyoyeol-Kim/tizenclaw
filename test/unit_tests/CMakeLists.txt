@@ -25,6 +25,7 @@ set(UNIT_TEST_SRCS
     key_store_test.cc
     audit_logger_test.cc
     task_scheduler_test.cc
+    channel_test.cc
 )
 
 # Mock Sources
@@ -51,6 +52,7 @@ set(CORE_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/key_store.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/audit_logger.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/task_scheduler.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/channel_registry.cc
 )
 
 add_executable(tizenclaw-unittests

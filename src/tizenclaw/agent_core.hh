@@ -47,6 +47,11 @@ public:
       scheduler_ = scheduler;
     }
 
+    // Access session store (for IPC usage queries)
+    SessionStore& GetSessionStore() {
+      return session_store_;
+    }
+
 private:
     // Execute a skill and return its JSON output
     std::string ExecuteSkill(

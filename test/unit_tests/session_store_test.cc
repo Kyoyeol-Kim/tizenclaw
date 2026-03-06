@@ -264,3 +264,55 @@ TEST_F(SessionStoreTest,
         summary.total_completion_tokens, 130);
     EXPECT_EQ(summary.entries.size(), 2u);
 }
+
+TEST_F(SessionStoreTest,
+    DailyUsageAggregation) {
+    // Log multiple calls from diff sessions
+    store_.LogTokenUsage(
+        "sess_a", "gemini", 100, 50);
+    store_.LogTokenUsage(
+        "sess_b", "openai", 200, 80);
+    store_.LogTokenUsage(
+        "sess_a", "gemini", 150, 60);
+
+    // Get today's date string
+    auto now = std::chrono::system_clock::now();
+    auto t =
+        std::chrono::system_clock::to_time_t(now);
+    struct tm tm_buf;
+    localtime_r(&t, &tm_buf);
+    char date_str[16];
+    strftime(date_str, sizeof(date_str),
+             "%Y-%m-%d", &tm_buf);
+
+    auto daily =
+        store_.LoadDailyUsage(date_str);
+    EXPECT_EQ(daily.total_prompt_tokens, 450);
+    EXPECT_EQ(
+        daily.total_completion_tokens, 190);
+    EXPECT_EQ(daily.total_requests, 3);
+}
+
+TEST_F(SessionStoreTest,
+    MonthlyUsageAggregation) {
+    store_.LogTokenUsage(
+        "sess_m", "gemini", 500, 200);
+    store_.LogTokenUsage(
+        "sess_m", "openai", 300, 100);
+
+    auto now = std::chrono::system_clock::now();
+    auto t =
+        std::chrono::system_clock::to_time_t(now);
+    struct tm tm_buf;
+    localtime_r(&t, &tm_buf);
+    char month_str[16];
+    strftime(month_str, sizeof(month_str),
+             "%Y-%m", &tm_buf);
+
+    auto monthly =
+        store_.LoadMonthlyUsage(month_str);
+    EXPECT_EQ(monthly.total_prompt_tokens, 800);
+    EXPECT_EQ(
+        monthly.total_completion_tokens, 300);
+    EXPECT_EQ(monthly.total_requests, 2);
+}

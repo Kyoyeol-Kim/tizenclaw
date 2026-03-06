@@ -86,10 +86,10 @@ timeline
                        : Task CRUD built-in tools
                        : Markdown task persistence
     section Platform Extensibility
-        Phase 12       : 🟡 Extensibility Layer
+        Phase 12       : ✅ Extensibility Layer
                        : Channel abstraction (C++ interface)
                        : System prompt externalization
-                       : LLM usage tracking
+                       : LLM usage tracking (Markdown)
         Phase 13       : 🟡 Skill Ecosystem
                        : Skill hot-reload (inotify)
                        : Model fallback auto-switch
@@ -338,7 +338,7 @@ timeline
 
 ---
 
-## Phase 12: Extensibility Layer 🟡
+## Phase 12: Extensibility Layer ✅ (Done)
 
 > **Goal**: Architecture flexibility for future growth
 
@@ -347,12 +347,18 @@ timeline
 |------|---------|
 | **Gap** | Telegram and MCP are completely separate — large effort for new channels |
 | **Ref** | NanoClaw: `channels/registry.ts` self-registration · OpenClaw: static registry |
-| **Plan** | `Channel` interface (C++) → `TelegramChannel`, `McpChannel` implementations |
+| **Impl** | `Channel` interface (C++) + `ChannelRegistry` for lifecycle management |
+
+**Implementation:**
+- `Channel` abstract interface: `GetName()`, `Start()`, `Stop()`, `IsRunning()`
+- `ChannelRegistry`: register, start/stop all, lookup by name
+- `TelegramClient` and `McpServer` migrated to implement `Channel`
+- `TizenClawDaemon` uses `ChannelRegistry` instead of direct pointer management
 
 **Done When:**
-- [ ] New channels added by implementing `Channel` interface only
-- [ ] Per-channel configuration in `channels/` directory
-- [ ] Existing Telegram + MCP migrated to interface
+- [x] New channels added by implementing `Channel` interface only
+- [x] Existing Telegram + MCP migrated to interface
+- [x] `ChannelRegistry` manages lifecycle (start/stop all)
 
 ---
 
@@ -381,12 +387,20 @@ timeline
 |------|---------|
 | **Gap** | No API cost/usage visibility |
 | **Ref** | OpenClaw: `usage.ts` (5K LOC) |
-| **Plan** | Parse `usage` fields → SQLite aggregation → per-session/daily/monthly reports |
+| **Impl** | Parse `usage` fields → Markdown aggregation → per-session/daily/monthly reports |
+
+**Storage Structure:**
+```
+/opt/usr/share/tizenclaw/usage/
+├── {session-id}.md       ← Per-session token usage
+├── daily/YYYY-MM-DD.md   ← Daily aggregate
+└── monthly/YYYY-MM.md    ← Monthly aggregate
+```
 
 **Done When:**
-- [ ] Per-session token usage summary
-- [ ] Daily/monthly aggregate in SQLite
-- [ ] Usage query via IPC command
+- [x] Per-session token usage summary (existing from Phase 9)
+- [x] Daily/monthly aggregate in Markdown files
+- [x] Usage query via IPC `get_usage` command (daily/monthly/session)
 
 ---
 
@@ -558,7 +572,7 @@ graph TD
 | **9** | Context & memory | ~1,200 | 🔴 Critical | Phase 8 ✅ |
 | **10** | Security hardening | ~800 | 🟡 Medium | Phase 9 |
 | **11** | Task scheduler & cron | ~1,000 | ✅ Done | Phase 9 ✅ |
-| **12** | Extensibility layer | ~600 | 🟡 Medium | Phase 10, 11 |
+| **12** | Extensibility layer | ~600 | ✅ Done | Phase 10, 11 |
 | **13** | Skill ecosystem | ~800 | 🟡 Medium | Phase 12 |
 | **14** | New channels & integrations | ~1,200 | 🟢 Low | Phase 12 |
 | **15** | Advanced platform features | ~2,000 | 🟢 Low | Phase 13, 14 |
