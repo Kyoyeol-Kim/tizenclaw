@@ -58,10 +58,8 @@ private:
     std::string m_container_id;
     std::string m_crun_root;
 
-    static constexpr const char* kSkillSocketName =
-        "tizenclaw_skill.sock";
-    static constexpr size_t kSkillSocketNameLen =
-        sizeof("tizenclaw_skill.sock") - 1;
+    static constexpr const char* kSkillSocketPath =
+        "/tmp/tizenclaw_skill.sock";
 };
 
 } // namespace tizenclaw

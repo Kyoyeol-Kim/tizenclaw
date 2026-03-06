@@ -219,24 +219,20 @@ std::string ContainerEngine::ExecuteSkillViaSocket(
   struct sockaddr_un addr;
   std::memset(&addr, 0, sizeof(addr));
   addr.sun_family = AF_UNIX;
-  // Abstract namespace: sun_path[0] = '\0'
-  std::memcpy(addr.sun_path + 1, kSkillSocketName,
-              kSkillSocketNameLen);
-  socklen_t addr_len =
-      offsetof(struct sockaddr_un, sun_path) +
-      1 + kSkillSocketNameLen;
+  strncpy(addr.sun_path, kSkillSocketPath,
+          sizeof(addr.sun_path) - 1);
 
   if (connect(sock,
               reinterpret_cast<struct sockaddr*>(
                   &addr),
-              addr_len) < 0) {
+              sizeof(addr)) < 0) {
     LOG(WARNING) << "UDS connect failed: "
                  << strerror(errno);
     close(sock);
     return "{}";
   }
 
-  LOG(ERROR) << "[DEBUG] UDS connected to skill_executor at \\0" << kSkillSocketName;
+  LOG(ERROR) << "[DEBUG] UDS connected to skill_executor at " << kSkillSocketPath;
 
   // Build request JSON
   nlohmann::json req;
