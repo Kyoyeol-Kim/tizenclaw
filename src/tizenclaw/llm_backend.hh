@@ -42,6 +42,9 @@ struct LlmResponse {
   int completion_tokens = 0;
   int total_tokens = 0;
 
+  // HTTP status for fallback decisions
+  int http_status = 0;
+
   bool HasToolCalls() const {
     return !tool_calls.empty();
   }

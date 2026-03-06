@@ -30,6 +30,8 @@ struct ToolPolicyConfig {
   int max_repeat_count = 3;
   // Skills blocked entirely
   std::set<std::string> blocked_skills;
+  // Max agentic loop iterations
+  int max_iterations = 5;
 };
 
 class ToolPolicy {
@@ -53,8 +55,21 @@ public:
       const std::string& skill_name,
       const nlohmann::json& args);
 
+  // Track iteration outputs for idle detection.
+  // Returns true if idle (no progress).
+  bool CheckIdleProgress(
+      const std::string& session_id,
+      const std::string& iteration_output);
+
+  // Get max iterations for agentic loop
+  int GetMaxIterations() const;
+
   // Reset per-session call tracking
   void ResetSession(
+      const std::string& session_id);
+
+  // Reset idle tracking for a session
+  void ResetIdleTracking(
       const std::string& session_id);
 
   // Get risk level for a skill
@@ -81,6 +96,13 @@ private:
   // session_id -> {call_hash -> count}
   std::map<std::string,
       std::map<std::string, int>> call_history_;
+
+  // Track iteration outputs for idle detection
+  // session_id -> recent iteration signatures
+  std::map<std::string,
+      std::vector<std::string>> idle_history_;
+  static constexpr int kIdleWindowSize = 3;
+
   std::mutex mutex_;
 };
 

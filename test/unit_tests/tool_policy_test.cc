@@ -186,3 +186,79 @@ TEST_F(ToolPolicyTest,
     EXPECT_TRUE(policy->LoadConfig(
         "/nonexistent/path.json"));
 }
+
+TEST_F(ToolPolicyTest,
+       DefaultMaxIterations) {
+    // Default should be 5
+    EXPECT_EQ(policy->GetMaxIterations(), 5);
+}
+
+TEST_F(ToolPolicyTest,
+       ConfigMaxIterations) {
+    std::ofstream f("test_tool_policy.json");
+    f << R"({"max_iterations": 10})"
+      << std::endl;
+    f.close();
+
+    policy->LoadConfig("test_tool_policy.json");
+
+    EXPECT_EQ(policy->GetMaxIterations(), 10);
+}
+
+TEST_F(ToolPolicyTest,
+       IdleDetectionTriggersAfterWindow) {
+    // Same output 3 times -> idle
+    std::string same_output =
+        "tool1:result;tool2:result;";
+
+    EXPECT_FALSE(policy->CheckIdleProgress(
+        "s1", same_output));
+    EXPECT_FALSE(policy->CheckIdleProgress(
+        "s1", same_output));
+    // 3rd time -> idle detected
+    EXPECT_TRUE(policy->CheckIdleProgress(
+        "s1", same_output));
+}
+
+TEST_F(ToolPolicyTest,
+       DifferentOutputsNotIdle) {
+    EXPECT_FALSE(policy->CheckIdleProgress(
+        "s1", "output_a"));
+    EXPECT_FALSE(policy->CheckIdleProgress(
+        "s1", "output_b"));
+    EXPECT_FALSE(policy->CheckIdleProgress(
+        "s1", "output_c"));
+}
+
+TEST_F(ToolPolicyTest,
+       ResetIdleTrackingClears) {
+    std::string same = "same_output";
+
+    policy->CheckIdleProgress("s1", same);
+    policy->CheckIdleProgress("s1", same);
+
+    // Reset before hitting window
+    policy->ResetIdleTracking("s1");
+
+    // After reset, need 3 more
+    EXPECT_FALSE(policy->CheckIdleProgress(
+        "s1", same));
+    EXPECT_FALSE(policy->CheckIdleProgress(
+        "s1", same));
+    EXPECT_TRUE(policy->CheckIdleProgress(
+        "s1", same));
+}
+
+TEST_F(ToolPolicyTest,
+       ResetSessionClearsIdle) {
+    std::string same = "same_output";
+
+    policy->CheckIdleProgress("s1", same);
+    policy->CheckIdleProgress("s1", same);
+
+    // ResetSession should also clear idle
+    policy->ResetSession("s1");
+
+    EXPECT_FALSE(policy->CheckIdleProgress(
+        "s1", same));
+}

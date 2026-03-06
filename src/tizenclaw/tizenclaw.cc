@@ -81,10 +81,22 @@ void TizenClawDaemon::OnCreate() {
     ipc_running_ = true;
     ipc_thread_ = std::thread(
         &TizenClawDaemon::IpcServerLoop, this);
+
+    // Start Skill Watcher (inotify)
+    skill_watcher_.Start(
+        "/opt/usr/share/tizenclaw/skills",
+        [this]() {
+          if (agent_) {
+            agent_->ReloadSkills();
+          }
+        });
 }
 
 void TizenClawDaemon::OnDestroy() {
     LOG(INFO) << "TizenClaw Daemon OnDestroy";
+
+    // Stop Skill Watcher
+    skill_watcher_.Stop();
 
     // Stop all channels
     channel_registry_.StopAll();

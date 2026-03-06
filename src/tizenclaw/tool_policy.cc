@@ -52,6 +52,11 @@ bool ToolPolicy::LoadConfig(
       }
     }
 
+    if (j.contains("max_iterations")) {
+      config_.max_iterations =
+          j["max_iterations"].get<int>();
+    }
+
     LOG(INFO) << "Tool policy loaded: "
               << "max_repeat=" 
               << config_.max_repeat_count
@@ -123,6 +128,49 @@ void ToolPolicy::ResetSession(
     const std::string& session_id) {
   std::lock_guard<std::mutex> lock(mutex_);
   call_history_.erase(session_id);
+  idle_history_.erase(session_id);
+}
+
+bool ToolPolicy::CheckIdleProgress(
+    const std::string& session_id,
+    const std::string& iteration_output) {
+  std::lock_guard<std::mutex> lock(mutex_);
+
+  auto& history = idle_history_[session_id];
+  history.push_back(iteration_output);
+
+  // Keep only the last kIdleWindowSize entries
+  while (static_cast<int>(history.size())
+         > kIdleWindowSize) {
+    history.erase(history.begin());
+  }
+
+  // Need at least kIdleWindowSize entries
+  if (static_cast<int>(history.size())
+      < kIdleWindowSize) {
+    return false;
+  }
+
+  // Check if all entries in window are the
+  // same (idle = no progress)
+  const auto& first = history.front();
+  for (const auto& entry : history) {
+    if (entry != first) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+int ToolPolicy::GetMaxIterations() const {
+  return config_.max_iterations;
+}
+
+void ToolPolicy::ResetIdleTracking(
+    const std::string& session_id) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  idle_history_.erase(session_id);
 }
 
 RiskLevel ToolPolicy::GetRiskLevel(

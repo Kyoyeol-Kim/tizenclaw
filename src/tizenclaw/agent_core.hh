@@ -1,6 +1,7 @@
 #ifndef __AGENT_CORE_H__
 #define __AGENT_CORE_H__
 
+#include <atomic>
 #include <map>
 #include <string>
 #include <vector>
@@ -52,6 +53,10 @@ public:
       return session_store_;
     }
 
+    // Reload skill declarations (thread-safe)
+    // Called by SkillWatcher on manifest changes
+    void ReloadSkills();
+
 private:
     // Execute a skill and return its JSON output
     std::string ExecuteSkill(
@@ -81,9 +86,18 @@ private:
     std::string LoadSystemPrompt(
         const nlohmann::json& config);
 
-    // Build final system prompt with dynamic skill list
+    // Build final system prompt with dynamic
+    // skill list
     std::string BuildSystemPrompt(
         const std::vector<LlmToolDecl>& tools);
+
+    // Try fallback backends on primary failure
+    LlmResponse TryFallbackBackends(
+        const std::vector<LlmMessage>& history,
+        const std::vector<LlmToolDecl>& tools,
+        std::function<void(
+            const std::string&)> on_chunk,
+        const std::string& system_prompt);
 
     // Compact history via LLM summarization
     // MUST be called with session_mutex_ held
@@ -110,14 +124,18 @@ private:
     static constexpr size_t kCompactionThreshold
         = 15;
     static constexpr size_t kCompactionCount = 10;
-    static constexpr int kMaxIterations = 5;
 
     SessionStore session_store_;
     ToolPolicy tool_policy_;
 
     // Cached skill declarations
     std::vector<LlmToolDecl> cached_tools_;
-    bool cached_tools_loaded_ = false;
+    std::atomic<bool> cached_tools_loaded_{false};
+    std::mutex tools_mutex_;  // Protects cached_tools_
+
+    // Model fallback configuration
+    std::vector<std::string> fallback_names_;
+    nlohmann::json llm_config_;
 
     // Task scheduler (owned by daemon)
     TaskScheduler* scheduler_ = nullptr;

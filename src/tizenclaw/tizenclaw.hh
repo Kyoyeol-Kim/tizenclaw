@@ -12,6 +12,7 @@
 #include "mcp_server.hh"
 #include "task_scheduler.hh"
 #include "channel_registry.hh"
+#include "skill_watcher.hh"
 #include "../common/logging.hh"
 
 namespace tizenclaw {
@@ -42,6 +43,7 @@ private:
     bool ipc_running_;
     TaskScheduler* scheduler_ = nullptr;
     ChannelRegistry channel_registry_;
+    SkillWatcher skill_watcher_;
 
     // Concurrency control
     std::atomic<int> active_clients_{0};

@@ -3,7 +3,9 @@
 #include <iostream>
 #include <chrono>
 #include <dirent.h>
+#include <sstream>
 #include <sys/stat.h>
+#include <thread>
 
 #include "agent_core.hh"
 #include "audit_logger.hh"
@@ -143,6 +145,26 @@ bool AgentCore::Initialize() {
       "tool_policy.json";
   tool_policy_.LoadConfig(policy_path);
 
+  // Parse fallback backends from config
+  if (llm_config.contains(
+          "fallback_backends")) {
+    for (auto& name :
+         llm_config["fallback_backends"]) {
+      std::string fb =
+          name.get<std::string>();
+      if (fb != backend_name) {
+        fallback_names_.push_back(fb);
+      }
+    }
+    if (!fallback_names_.empty()) {
+      LOG(INFO)
+          << "Fallback backends: "
+          << fallback_names_.size()
+          << " configured";
+    }
+  }
+  llm_config_ = llm_config;
+
   // Audit: config loaded
   AuditLogger::Instance().Log(
       AuditLogger::MakeEvent(
@@ -217,29 +239,46 @@ std::string AgentCore::ProcessPrompt(
 
   int iterations = 0;
   std::string last_text;
+  int max_iter =
+      tool_policy_.GetMaxIterations();
 
-  while (iterations < kMaxIterations) {
-    // Build system prompt with dynamic skill list
-    std::string full_prompt = BuildSystemPrompt(tools);
+  // Reset idle tracking for this prompt
+  tool_policy_.ResetIdleTracking(session_id);
+
+  while (iterations < max_iter) {
+    // Build system prompt with dynamic
+    // skill list
+    std::string full_prompt =
+        BuildSystemPrompt(tools);
 
     // Query LLM backend without holding lock
     LlmResponse resp = m_backend->Chat(
-        local_history, tools, on_chunk, full_prompt);
+        local_history, tools, on_chunk,
+        full_prompt);
 
     if (!resp.success) {
       LOG(ERROR) << "LLM error: "
                  << resp.error_message;
-      // Rollback: remove the user message to
-      // prevent corrupted history from poisoning
-      // subsequent requests.
-      {
-        std::lock_guard<std::mutex> lock(
-            session_mutex_);
-        if (!m_sessions[session_id].empty()) {
-          m_sessions[session_id].pop_back();
+
+      // Try fallback backends
+      resp = TryFallbackBackends(
+          local_history, tools, on_chunk,
+          full_prompt);
+
+      if (!resp.success) {
+        // Rollback: remove the user message
+        {
+          std::lock_guard<std::mutex> lock(
+              session_mutex_);
+          if (!m_sessions[session_id]
+                   .empty()) {
+            m_sessions[session_id]
+                .pop_back();
+          }
         }
+        return "Error: "
+               + resp.error_message;
       }
-      return "Error: " + resp.error_message;
     }
 
     // Log token usage
@@ -404,18 +443,61 @@ std::string AgentCore::ProcessPrompt(
           tool_msgs.end());
       TrimHistory(session_id);
     }
+
+    // Check idle progress (no new results)
+    std::ostringstream iter_sig;
+    for (auto& tm : tool_msgs) {
+      iter_sig << tm.tool_name << ":";
+      if (!tm.tool_result.is_null()) {
+        iter_sig << tm.tool_result.dump();
+      }
+      iter_sig << ";";
+    }
+    if (tool_policy_.CheckIdleProgress(
+            session_id, iter_sig.str())) {
+      LOG(WARNING)
+          << "Idle loop detected in session: "
+          << session_id;
+      std::string idle_msg =
+          "I've been running the same tools "
+          "without making progress. "
+          "Stopping to prevent an infinite "
+          "loop. Please try a different "
+          "approach.";
+
+      LlmMessage stop_msg;
+      stop_msg.role = "assistant";
+      stop_msg.text = idle_msg;
+      {
+        std::lock_guard<std::mutex> lock(
+            session_mutex_);
+        m_sessions[session_id].push_back(
+            stop_msg);
+        session_store_.SaveSession(
+            session_id,
+            m_sessions[session_id]);
+      }
+      return idle_msg;
+    }
+
     iterations++;
   }
 
-  LOG(WARNING) << "Reached max tool iterations (" << kMaxIterations << ")";
+  LOG(WARNING)
+      << "Reached max tool iterations ("
+      << max_iter << ")";
 
   {
-    std::lock_guard<std::mutex> lock(session_mutex_);
+    std::lock_guard<std::mutex> lock(
+        session_mutex_);
     session_store_.SaveSession(
         session_id, m_sessions[session_id]);
   }
 
-  return last_text.empty() ? "Task partially completed (reached iteration limit)." : last_text;
+  return last_text.empty()
+      ? "Task partially completed "
+        "(reached iteration limit)."
+      : last_text;
 }
 
 std::string AgentCore::ExecuteSkill(
@@ -477,9 +559,14 @@ std::string AgentCore::ExecuteFileOp(
 std::vector<LlmToolDecl>
 AgentCore::LoadSkillDeclarations() {
   // Return cached declarations after first load
-  if (cached_tools_loaded_) {
+  if (cached_tools_loaded_.load()) {
+    std::lock_guard<std::mutex> lock(
+        tools_mutex_);
     return cached_tools_;
   }
+
+  std::lock_guard<std::mutex> lock(
+      tools_mutex_);
 
   std::vector<LlmToolDecl> tools;
   const std::string skills_dir =
@@ -656,8 +743,25 @@ AgentCore::LoadSkillDeclarations() {
   tools.push_back(cancel_task_tool);
 
   cached_tools_ = tools;
-  cached_tools_loaded_ = true;
+  cached_tools_loaded_.store(true);
   return tools;
+}
+
+void AgentCore::ReloadSkills() {
+  LOG(INFO) << "Reloading skill declarations";
+  {
+    std::lock_guard<std::mutex> lock(
+        tools_mutex_);
+    cached_tools_.clear();
+  }
+  cached_tools_loaded_.store(false);
+
+  // Force reload and rebuild system prompt
+  auto tools = LoadSkillDeclarations();
+  m_system_prompt =
+      BuildSystemPrompt(tools);
+  LOG(INFO) << "Skill reload complete: "
+            << tools.size() << " tools";
 }
 
 std::string AgentCore::LoadSystemPrompt(
@@ -975,6 +1079,119 @@ std::string AgentCore::ExecuteTaskOp(
   }
 
   return result.dump();
+}
+
+LlmResponse AgentCore::TryFallbackBackends(
+    const std::vector<LlmMessage>& history,
+    const std::vector<LlmToolDecl>& tools,
+    std::function<void(
+        const std::string&)> on_chunk,
+    const std::string& system_prompt) {
+  LlmResponse last_resp;
+  last_resp.success = false;
+  last_resp.error_message =
+      "No fallback backends configured";
+
+  if (fallback_names_.empty()) {
+    return last_resp;
+  }
+
+  for (const auto& fb_name : fallback_names_) {
+    LOG(INFO) << "Trying fallback backend: "
+              << fb_name;
+
+    auto fb_backend =
+        LlmBackendFactory::Create(fb_name);
+    if (!fb_backend) {
+      LOG(WARNING)
+          << "Failed to create fallback: "
+          << fb_name;
+      continue;
+    }
+
+    // Get backend config
+    nlohmann::json fb_config;
+    if (llm_config_.contains("backends") &&
+        llm_config_["backends"]
+            .contains(fb_name)) {
+      fb_config =
+          llm_config_["backends"][fb_name];
+    }
+
+    // Decrypt API key if encrypted
+    if (fb_config.contains("api_key")) {
+      std::string api_key =
+          fb_config["api_key"]
+              .get<std::string>();
+      if (KeyStore::IsEncrypted(api_key)) {
+        std::string decrypted =
+            KeyStore::Decrypt(api_key);
+        if (!decrypted.empty()) {
+          fb_config["api_key"] = decrypted;
+        }
+      }
+    }
+
+    // xAI identity injection
+    if (fb_name == "xai" ||
+        fb_name == "grok") {
+      fb_config["provider_name"] = "xai";
+      if (!fb_config.contains("endpoint")) {
+        fb_config["endpoint"] =
+            "https://api.x.ai/v1";
+      }
+    }
+
+    if (!fb_backend->Initialize(fb_config)) {
+      LOG(WARNING)
+          << "Failed to init fallback: "
+          << fb_name;
+      continue;
+    }
+
+    // Rate-limit backoff: try with delay
+    int backoff_ms = 0;
+    if (last_resp.http_status == 429) {
+      backoff_ms = 1000;  // 1s initial backoff
+      LOG(INFO)
+          << "Rate-limited, backing off "
+          << backoff_ms << "ms";
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(
+              backoff_ms));
+    }
+
+    LlmResponse resp = fb_backend->Chat(
+        history, tools, on_chunk,
+        system_prompt);
+
+    if (resp.success) {
+      LOG(INFO)
+          << "Fallback succeeded: "
+          << fb_name;
+
+      // Switch primary backend
+      m_backend = std::move(fb_backend);
+
+      AuditLogger::Instance().Log(
+          AuditLogger::MakeEvent(
+              AuditEventType::kConfigChange,
+              "",
+              {{"fallback_from",
+                "primary"},
+               {"fallback_to",
+                fb_name}}));
+
+      return resp;
+    }
+
+    last_resp = resp;
+    LOG(WARNING)
+        << "Fallback failed (" << fb_name
+        << "): " << resp.error_message;
+  }
+
+  return last_resp;
 }
 
 } // namespace tizenclaw
