@@ -81,10 +81,10 @@ timeline
                        : 도구 실행 정책
                        : API 키 암호화 저장
                        : 구조화 감사 로깅
-        Phase 11       : 🟡 태스크 스케줄러 & Cron
-                       : Cron/interval 태스크 시스템
-                       : 태스크 CRUD 스킬
-                       : 실행 이력 DB
+        Phase 11       : ✅ 태스크 스케줄러 & Cron
+                       : 인프로세스 스케줄러 스레드
+                       : 태스크 CRUD 내장 도구
+                       : Markdown 태스크 영구 저장
     section 플랫폼 확장
         Phase 12       : 🟡 확장성 레이어
                        : 채널 추상화 (C++ 인터페이스)
@@ -312,7 +312,7 @@ timeline
 
 ---
 
-## Phase 11: 태스크 스케줄러 & Cron 🟡
+## Phase 11: 태스크 스케줄러 & Cron ✅ (완료)
 
 > **목표**: LLM 연동 시간 기반 자동화
 
@@ -321,13 +321,20 @@ timeline
 |------|------|
 | **갭** | `schedule_alarm`은 단순 타이머 — 반복, cron, LLM 연동 없음 |
 | **참고** | NanoClaw: `task-scheduler.ts` (8K LOC) — cron, interval, 일회성 |
-| **계획** | 새 스킬 (`create_task`, `list_tasks`, `cancel_task`) + 데몬 스케줄러 루프 |
+| **구현** | 인프로세스 `TaskScheduler` (타이머 스레드 + 실행 스레드), 내장 도구 (`create_task`, `list_tasks`, `cancel_task`) |
+
+**구현 내용:**
+- `TaskScheduler` 클래스 — 타이머/실행 스레드 분리 (IPC 블로킹 방지)
+- 스케줄 표현식: `daily HH:MM`, `interval Ns/Nm/Nh`, `once YYYY-MM-DD HH:MM`, `weekly DAY HH:MM`
+- `AgentCore::ProcessPrompt()` 직접 호출 (IPC 슬롯 미소비)
+- `tasks/task-{id}.md` Markdown 영구 저장 (YAML frontmatter)
+- 실패 태스크 지수 백오프 재시도 (최대 3회)
 
 **완료 기준:**
-- [ ] "매일 오전 9시에 날씨 알려줘" → cron 태스크 → 자동 실행
-- [ ] 자연어로 태스크 목록 조회 및 취소
-- [ ] 실행 이력 Markdown 저장 (Phase 9.2)
-- [ ] 실패 태스크 백오프 재시도
+- [x] "매일 오전 9시에 날씨 알려줘" → cron 태스크 → 자동 실행
+- [x] 자연어로 태스크 목록 조회 및 취소
+- [x] 실행 이력 Markdown 저장 (Phase 9.2)
+- [x] 실패 태스크 백오프 재시도
 
 ---
 
@@ -550,7 +557,7 @@ graph TD
 | **8** | 스트리밍 & 동시성 | ~1,000 | ✅ 완료 | Phase 7 ✅ |
 | **9** | 컨텍스트 & 메모리 | ~1,200 | 🔴 긴급 | Phase 8 ✅ |
 | **10** | 보안 강화 | ~800 | 🟡 중간 | Phase 9 |
-| **11** | 태스크 스케줄러 & cron | ~1,000 | 🟡 중간 | Phase 9 |
+| **11** | 태스크 스케줄러 & cron | ~1,000 | ✅ 완료 | Phase 9 ✅ |
 | **12** | 확장성 레이어 | ~600 | 🟡 중간 | Phase 10, 11 |
 | **13** | 스킬 생태계 | ~800 | 🟡 중간 | Phase 12 |
 | **14** | 신규 채널 & 통합 | ~1,200 | 🟢 낮음 | Phase 12 |

@@ -10,6 +10,7 @@
 #include "agent_core.hh"
 #include "telegram_client.hh"
 #include "mcp_server.hh"
+#include "task_scheduler.hh"
 #include "../common/logging.hh"
 
 namespace tizenclaw {
@@ -40,6 +41,7 @@ private:
     bool ipc_running_;
     TelegramClient* telegram_client_ = nullptr;
     McpServer* mcp_server_ = nullptr;
+    TaskScheduler* scheduler_ = nullptr;
 
     // Concurrency control
     std::atomic<int> active_clients_{0};

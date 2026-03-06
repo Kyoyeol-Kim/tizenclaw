@@ -53,6 +53,7 @@ set(SOURCES
     src/tizenclaw/tool_policy.cc
     src/tizenclaw/key_store.cc
     src/tizenclaw/audit_logger.cc
+    src/tizenclaw/task_scheduler.cc
 )
 
 # Executable

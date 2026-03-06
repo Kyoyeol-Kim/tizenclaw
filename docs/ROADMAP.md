@@ -81,10 +81,10 @@ timeline
                        : Tool execution policy
                        : API key encrypted storage
                        : Structured audit logging
-        Phase 11       : 🟡 Task Scheduler & Cron
-                       : Cron/interval task system
-                       : Task CRUD via skills
-                       : Execution history DB
+        Phase 11       : ✅ Task Scheduler & Cron
+                       : In-process scheduler thread
+                       : Task CRUD built-in tools
+                       : Markdown task persistence
     section Platform Extensibility
         Phase 12       : 🟡 Extensibility Layer
                        : Channel abstraction (C++ interface)
@@ -312,7 +312,7 @@ timeline
 
 ---
 
-## Phase 11: Task Scheduler & Cron 🟡
+## Phase 11: Task Scheduler & Cron ✅ (Done)
 
 > **Goal**: Time-based automation with LLM integration
 
@@ -321,13 +321,20 @@ timeline
 |------|---------|
 | **Gap** | `schedule_alarm` is a simple timer — no repeat, no cron, no LLM integration |
 | **Ref** | NanoClaw: `task-scheduler.ts` (8K LOC) — cron, interval, one-shot |
-| **Plan** | New skills (`create_task`, `list_tasks`, `cancel_task`) + daemon scheduler loop |
+| **Impl** | In-process `TaskScheduler` (timer thread + executor thread), built-in tools (`create_task`, `list_tasks`, `cancel_task`) |
+
+**Implementation:**
+- `TaskScheduler` class with separated timer/executor threads (no blocking of IPC)
+- Schedule expressions: `daily HH:MM`, `interval Ns/Nm/Nh`, `once YYYY-MM-DD HH:MM`, `weekly DAY HH:MM`
+- Direct `AgentCore::ProcessPrompt()` call (no IPC slot consumption)
+- Markdown persistence in `tasks/task-{id}.md` with YAML frontmatter
+- Failed task retry with exponential backoff (max 3 retries)
 
 **Done When:**
-- [ ] "Tell me the weather every day at 9 AM" → cron task → auto execution
-- [ ] Task listing and cancellation via natural language
-- [ ] Execution history stored in Markdown (Phase 9.2)
-- [ ] Failed task retry with backoff
+- [x] "Tell me the weather every day at 9 AM" → cron task → auto execution
+- [x] Task listing and cancellation via natural language
+- [x] Execution history stored in Markdown (Phase 9.2)
+- [x] Failed task retry with backoff
 
 ---
 
@@ -550,7 +557,7 @@ graph TD
 | **8** | Streaming & concurrency | ~1,000 | ✅ Done | Phase 7 ✅ |
 | **9** | Context & memory | ~1,200 | 🔴 Critical | Phase 8 ✅ |
 | **10** | Security hardening | ~800 | 🟡 Medium | Phase 9 |
-| **11** | Task scheduler & cron | ~1,000 | 🟡 Medium | Phase 9 |
+| **11** | Task scheduler & cron | ~1,000 | ✅ Done | Phase 9 ✅ |
 | **12** | Extensibility layer | ~600 | 🟡 Medium | Phase 10, 11 |
 | **13** | Skill ecosystem | ~800 | 🟡 Medium | Phase 12 |
 | **14** | New channels & integrations | ~1,200 | 🟢 Low | Phase 12 |

@@ -12,6 +12,7 @@
 #include "llm_backend.hh"
 #include "session_store.hh"
 #include "tool_policy.hh"
+#include "task_scheduler.hh"
 #include <mutex>
 
 namespace tizenclaw {
@@ -41,6 +42,11 @@ public:
         const std::string& skill_name,
         const nlohmann::json& args);
 
+    // Set TaskScheduler reference (called by daemon)
+    void SetScheduler(TaskScheduler* scheduler) {
+      scheduler_ = scheduler;
+    }
+
 private:
     // Execute a skill and return its JSON output
     std::string ExecuteSkill(
@@ -56,6 +62,11 @@ private:
         const std::string& operation,
         const std::string& path,
         const std::string& content);
+
+    // Execute task scheduler operations
+    std::string ExecuteTaskOp(
+        const std::string& operation,
+        const nlohmann::json& args);
 
     // Load skill manifests as tool declarations
     std::vector<LlmToolDecl>
@@ -102,6 +113,9 @@ private:
     // Cached skill declarations
     std::vector<LlmToolDecl> cached_tools_;
     bool cached_tools_loaded_ = false;
+
+    // Task scheduler (owned by daemon)
+    TaskScheduler* scheduler_ = nullptr;
 };
 
 } // namespace tizenclaw

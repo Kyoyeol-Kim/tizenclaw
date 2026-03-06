@@ -68,6 +68,11 @@ void TizenClawDaemon::OnCreate() {
 
     // Initialize MCP Server
     mcp_server_ = new McpServer(agent_);
+
+    // Initialize Task Scheduler
+    scheduler_ = new TaskScheduler();
+    agent_->SetScheduler(scheduler_);
+    scheduler_->Start(agent_);
     
     ipc_running_ = true;
     ipc_thread_ = std::thread(&TizenClawDaemon::IpcServerLoop, this);
@@ -111,9 +116,17 @@ void TizenClawDaemon::OnDestroy() {
     }
 
     if (agent_) {
+        agent_->SetScheduler(nullptr);
         agent_->Shutdown();
         delete agent_;
         agent_ = nullptr;
+    }
+
+    // Stop Task Scheduler
+    if (scheduler_) {
+        scheduler_->Stop();
+        delete scheduler_;
+        scheduler_ = nullptr;
     }
     
     // Cleanup MCP Server

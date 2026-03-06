@@ -343,6 +343,11 @@ std::string AgentCore::ProcessPrompt(
               tc.args.value("content", "");
           r.output = ExecuteFileOp(
               op, path, content);
+        } else if (tc.name == "create_task" ||
+                   tc.name == "list_tasks" ||
+                   tc.name == "cancel_task") {
+          r.output = ExecuteTaskOp(
+              tc.name, tc.args);
         } else {
           r.output = ExecuteSkill(
               tc.name, tc.args);
@@ -575,6 +580,80 @@ AgentCore::LoadSkillDeclarations() {
           {"operation", "path"})}
   };
   tools.push_back(file_tool);
+
+  // Built-in tool: create_task
+  LlmToolDecl create_task_tool;
+  create_task_tool.name = "create_task";
+  create_task_tool.description =
+      "Create a scheduled task that runs "
+      "automatically. Supports: "
+      "'daily HH:MM' (every day), "
+      "'interval Ns/Nm/Nh' (repeating), "
+      "'once YYYY-MM-DD HH:MM' (one-shot), "
+      "'weekly DAY HH:MM' (every week). "
+      "The prompt will be sent to the LLM "
+      "at the scheduled time.";
+  create_task_tool.parameters = {
+      {"type", "object"},
+      {"properties", {
+          {"schedule", {
+              {"type", "string"},
+              {"description",
+               "Schedule expression, e.g. "
+               "'daily 09:00', "
+               "'interval 30m', "
+               "'once 2026-03-10 14:00', "
+               "'weekly mon 09:00'"}
+          }},
+          {"prompt", {
+              {"type", "string"},
+              {"description",
+               "The prompt to execute at "
+               "the scheduled time"}
+          }}
+      }},
+      {"required", nlohmann::json::array(
+          {"schedule", "prompt"})}
+  };
+  tools.push_back(create_task_tool);
+
+  // Built-in tool: list_tasks
+  LlmToolDecl list_tasks_tool;
+  list_tasks_tool.name = "list_tasks";
+  list_tasks_tool.description =
+      "List all scheduled tasks. Optionally "
+      "filter by session_id.";
+  list_tasks_tool.parameters = {
+      {"type", "object"},
+      {"properties", {
+          {"session_id", {
+              {"type", "string"},
+              {"description",
+               "Optional session ID to filter"}
+          }}
+      }},
+      {"required", nlohmann::json::array()}
+  };
+  tools.push_back(list_tasks_tool);
+
+  // Built-in tool: cancel_task
+  LlmToolDecl cancel_task_tool;
+  cancel_task_tool.name = "cancel_task";
+  cancel_task_tool.description =
+      "Cancel a scheduled task by its ID.";
+  cancel_task_tool.parameters = {
+      {"type", "object"},
+      {"properties", {
+          {"task_id", {
+              {"type", "string"},
+              {"description",
+               "The task ID to cancel"}
+          }}
+      }},
+      {"required", nlohmann::json::array(
+          {"task_id"})}
+  };
+  tools.push_back(cancel_task_tool);
 
   cached_tools_ = tools;
   cached_tools_loaded_ = true;
@@ -809,6 +888,93 @@ std::string AgentCore::ExecuteSkillForMcp(
     const std::string& skill_name,
     const nlohmann::json& args) {
   return ExecuteSkill(skill_name, args);
+}
+
+std::string AgentCore::ExecuteTaskOp(
+    const std::string& operation,
+    const nlohmann::json& args) {
+  if (!scheduler_) {
+    return "{\"error\": "
+           "\"TaskScheduler not available\"}";
+  }
+
+  nlohmann::json result;
+
+  if (operation == "create_task") {
+    std::string schedule =
+        args.value("schedule", "");
+    std::string prompt =
+        args.value("prompt", "");
+    std::string session_id =
+        args.value("session_id", "default");
+
+    if (schedule.empty() || prompt.empty()) {
+      result = {
+          {"error",
+           "schedule and prompt are required"}
+      };
+    } else {
+      std::string task_id =
+          scheduler_->CreateTask(
+              schedule, prompt, session_id);
+      if (task_id.empty()) {
+        result = {
+            {"error",
+             "Invalid schedule expression. "
+             "Use: 'daily HH:MM', "
+             "'interval Ns/Nm/Nh', "
+             "'once YYYY-MM-DD HH:MM', or "
+             "'weekly DAY HH:MM'"}
+        };
+      } else {
+        result = {
+            {"status", "created"},
+            {"task_id", task_id},
+            {"schedule", schedule},
+            {"prompt", prompt}
+        };
+      }
+    }
+  } else if (operation == "list_tasks") {
+    std::string session_id =
+        args.value("session_id", "");
+    auto tasks =
+        scheduler_->ListTasks(session_id);
+    result = {
+        {"status", "ok"},
+        {"tasks", tasks},
+        {"count", tasks.size()}
+    };
+  } else if (operation == "cancel_task") {
+    std::string task_id =
+        args.value("task_id", "");
+    if (task_id.empty()) {
+      result = {
+          {"error", "task_id is required"}
+      };
+    } else {
+      bool ok =
+          scheduler_->CancelTask(task_id);
+      if (ok) {
+        result = {
+            {"status", "cancelled"},
+            {"task_id", task_id}
+        };
+      } else {
+        result = {
+            {"error", "Task not found"},
+            {"task_id", task_id}
+        };
+      }
+    }
+  } else {
+    result = {
+        {"error", "Unknown task operation: "
+                  + operation}
+    };
+  }
+
+  return result.dump();
 }
 
 } // namespace tizenclaw
