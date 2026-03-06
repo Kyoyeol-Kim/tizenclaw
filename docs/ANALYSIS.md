@@ -1,4 +1,4 @@
-# TizenClaw 프로젝트 분석 및 향후 로드맵
+# TizenClaw 프로젝트 분석
 
 > **최종 업데이트**: 2026-03-05
 
@@ -125,7 +125,7 @@ tizenclaw/
 │   ├── tizenclaw.service            # 데몬 systemd 서비스
 │   ├── tizenclaw-skills-secure.service  # 스킬 컨테이너 systemd 서비스
 │   └── tizenclaw.manifest           # Tizen SMACK 매니페스트
-├── docs/                            # 설계 문서 (4개)
+├── docs/                            # 문서
 ├── CMakeLists.txt                   # 빌드 시스템 (C++17)
 └── third_party/                     # crun 1.26 소스 (소스 빌드)
 ```
@@ -161,7 +161,7 @@ tizenclaw/
 
 | 모듈 | 구현 | 프로토콜 | 상태 |
 |------|------|---------|------|
-| **IPC Server** | `tizenclaw.cc::IpcServerLoop()` | Abstract Unix Socket (`\0tizenclaw.ipc`), JSON 양방향 | ✅ 완료 |
+| **IPC Server** | `tizenclaw.cc::IpcServerLoop()` | Abstract Unix Socket (`\0tizenclaw.sock`), JSON 양방향 | ✅ 완료 |
 | **UID 인증** | `IsAllowedUid()` | `SO_PEERCRED` 기반, root/app_fw/system/developer | ✅ 완료 |
 | **Telegram Listener** | `telegram_listener.py` | Bot API Long-Polling → IPC Socket → sendMessage 회신 | ✅ 완료 |
 | **TelegramBridge** | `telegram_bridge.cc/hh` | `fork()+execv()` 자식 프로세스 관리, watchdog 재시작 (3회, 5초) | ✅ 완료 |
@@ -206,7 +206,7 @@ tizenclaw/
 
 ---
 
-## 4. 현재까지 완료된 작업
+## 4. 완료된 개발 Phase
 
 ### Phase 1: 기반 아키텍처 구축 ✅
 - C++ Native 데몬 스켈레톤 (`tizenclaw.cc`, Tizen Core 이벤트 루프)
@@ -234,7 +234,7 @@ tizenclaw/
 - `CLAW_ARGS` 환경변수 → JSON stdout 기반 입출력 규약
 
 ### Phase 5: 통신 및 외부 연동 ✅
-- JSON 기반 양방향 IPC: Abstract Unix Domain Socket (`\0tizenclaw.ipc`)
+- JSON 기반 양방향 IPC: Abstract Unix Domain Socket (`\0tizenclaw.sock`)
 - `SO_PEERCRED` 기반 UID 인증 (root, app_fw, system, developer만 허용)
 - Telegram Listener: Bot API Long-Polling → IPC → 응답 회신
 - MCP Server: stdio JSON-RPC 2.0, `sdb shell` 터널을 통한 PC-디바이스 연결
@@ -242,66 +242,132 @@ tizenclaw/
 
 ---
 
-## 5. 향후 개발 로드맵
+## 5. 경쟁 분석: OpenClaw & NanoClaw 대비 Gap 분석
 
-### 🔴 높은 우선순위
+> **분석 기준**: 2026-03-05
+> **분석 대상**: OpenClaw, NanoClaw
 
-#### 5.1 ~~telegram_listener systemd 서비스 독립화~~ → 데몬 관리 프로세스로 통합 ✅
-- [x] `TelegramBridge` 모듈: `fork()+execv()`로 `telegram_listener.py`를 자식 프로세스로 실행
-- [x] `telegram_config.json`에서 `TELEGRAM_BOT_TOKEN` 로드 및 환경변수 주입
-- [x] Watchdog 스레드: 비정상 종료 시 자동 재시작 (최대 3회, 5초 간격)
+### 5.1 프로젝트 규모 비교
 
-#### 5.2 IPC 프로토콜 고도화
-- [ ] 메시지 프레이밍: 길이-프리픽스(length-prefix) 프로토콜 도입 (현재 shutdown(SHUT_WR) 기반)
-- [ ] 비동기 IPC 지원: 긴 작업에 대한 진행 상태 알림 (streaming response)
-- [ ] 다중 클라이언트 동시 처리 (현재 순차 처리)
+| 항목 | **TizenClaw** | **OpenClaw** | **NanoClaw** |
+|------|:---:|:---:|:---:|
+| 언어 | C++ / Python | TypeScript | TypeScript |
+| 소스 파일 수 | ~44 | ~700+ | ~50 |
+| 스킬 수 | 9 | 52 | 5+ (skills-engine) |
+| LLM 백엔드 | 5 | 15+ | Claude SDK |
+| 채널 수 | 2 (Telegram, MCP) | 8+ | 5 (WhatsApp, Telegram, Slack, Discord, Gmail) |
+| 테스트 커버리지 | 7 케이스 | 수백 개 | 수십 개 |
+| 플러그인 시스템 | ❌ | ✅ (npm 기반) | ❌ |
 
-#### 5.3 스킬 결과 → LLM 피드백 루프 고도화
-- [ ] 병렬 tool 호출 시 `tool_call_id` 정확한 매핑 (현재 `call_0`, `toolu_0` 하드코딩)
-- [ ] 복합 시나리오 E2E 테스트: 다중 스킬 체이닝 검증
-- [ ] 스킬 에러 시 LLM에게 재시도 유도 로직
+### 5.2 Gap 목록
 
-### 🟡 중간 우선순위
+#### 🔴 높은 우선순위 (핵심 기능 Gap)
 
-#### 5.4 MCP Server 고도화
-- [ ] 현재 `subprocess` 기반 → IPC Socket을 통한 Daemon 연동으로 전환
-  - MCP Server가 직접 스킬 실행 대신, IPC를 통해 Daemon의 Agentic Loop 활용
-- [ ] MCP 리소스(Resource) 지원 추가 (디바이스 상태 읽기 등)
-- [ ] SSE (Server-Sent Events) 트랜스포트 지원 (웹 기반 클라이언트)
+**메모리 / 대화 지속성**
 
-#### 5.5 보안 강화
-- [ ] `llm_config.json`의 보안 저장: Tizen KeyManager 또는 환경변수 기반
-- [ ] 스킬 컨테이너 네트워크 격리 정책 세분화 (현재 전체 네트워크 namespace 분리)
-- [ ] SMACK 레이블 세분화 (현재 `_` 레이블 일괄 적용)
+| 항목 | OpenClaw | NanoClaw | TizenClaw 현황 | 필요 작업 |
+|------|---------|----------|-------------|----------|
+| 대화 히스토리 저장 | SQLite + 벡터 DB | SQLite (`db.ts`) | **인메모리 only** (재시작 시 소멸) | 세션 히스토리 영구 저장 (SQLite 또는 파일) |
+| 임베딩 검색 | 다중 백엔드 (OpenAI, Gemini, Voyage, Ollama, Mistral) | 그룹별 `CLAUDE.md` 파일 | ❌ 없음 | 장기적으로 검토 |
+| 시맨틱 검색 | MMR 알고리즘, 쿼리 확장 | ❌ | ❌ 없음 | 장기적으로 검토 |
 
-#### 5.6 테스트 커버리지 확대
-- [ ] `LlmBackend` Mock을 활용한 AgentCore Agentic Loop 단위 테스트
-- [ ] IPC 프로토콜 통합 테스트 (소켓 통신 검증)
-- [ ] 스킬 E2E 테스트 프레임워크 구축
+**컨텍스트 창 관리**
 
-### 🟢 낮은 우선순위
+| 항목 | OpenClaw | NanoClaw | TizenClaw 현황 |
+|------|---------|----------|-------------|
+| 컨텍스트 압축 | `compaction.ts` (15,274 LOC) - 토큰 사용량 기반 자동 요약 | 세션 히스토리 제한 | 최대 20턴 단순 트리밍 |
+| 토큰 카운팅 | 모델별 정확한 토큰 계산 | ❌ | ❌ 없음 |
+| 컨텍스트 창 가드 | `context-window-guard.ts` - 초과 시 자동 요약 | ❌ | ❌ 없음 |
 
-#### 5.7 신규 스킬 확장
-- [ ] 카메라/스크린샷 캡처 스킬
-- [ ] 알림(Notification) 생성 스킬
-- [ ] 파일 관리 스킬 (목록, 복사, 삭제)
-- [ ] 음량/밝기 제어 스킬
-- [ ] 시스템 설정 변경 스킬 (언어, 시간대 등)
+**보안 강화**
 
-#### 5.8 인프라 개선
-- [ ] CI/CD: GBS 빌드 자동화 파이프라인 구축
-- [ ] 구조화 로깅: dlog + 레벨별 필터링 + 원격 수집
-- [ ] 스킬 출력 JSON 스키마 검증 추가
-- [ ] 스킬 Hot-Reload: 재배포 없이 새 스킬 동적 등록
+| 항목 | OpenClaw | NanoClaw | TizenClaw 현황 |
+|------|---------|----------|-------------|
+| 보안 감사 | `audit.ts` (45,786 LOC) | `ipc-auth.test.ts` (17,135 LOC) | `SO_PEERCRED` UID 검증만 |
+| 스킬 스캐너 | `skill-scanner.ts` - 악성 스킬 탐지 | ❌ | ❌ 없음 |
+| 마운트 보안 | ❌ | `mount-security.ts` (10,633 LOC) | readonly rootfs + seccomp |
+| 발신자 허용목록 | `allowlist-match.ts` | `sender-allowlist.ts` | ❌ 없음 |
+| 시크릿 관리 | `secrets/` 디렉터리, API 키 로테이션 | stdin으로 시크릿 전달 | `llm_config.json` 평문 |
+| 도구 실행 정책 | `tool-policy.ts` - 화이트/블랙리스트 | ❌ | ❌ 없음 |
 
-#### 5.9 UX 확장
-- [ ] 웹 UI 대시보드 (스킬 상태 모니터링, 세션 히스토리 조회)
-- [ ] 음성 입력 연동 (STT → TizenClaw → TTS)
-- [ ] 멀티모달 입력 지원 (이미지 분석 등)
+**IPC 프로토콜 고도화**
+
+| 항목 | OpenClaw | NanoClaw | TizenClaw 현황 |
+|------|---------|----------|-------------|
+| 메시지 프레이밍 | WebSocket + JSON-RPC | 센티널 마커 기반 파싱 | `shutdown(SHUT_WR)` EOF 기반 |
+| 스트리밍 응답 | SSE / WebSocket 실시간 | 스트리밍 출력 콜백 | ❌ 블로킹 응답만 |
+| 동시 클라이언트 | 다중 세션 병렬 처리 | `GroupQueue` 공정 스케줄링 | 순차 처리 |
+
+#### 🟡 중간 우선순위 (확장성 Gap)
+
+**태스크 스케줄러**
+
+| 항목 | OpenClaw | NanoClaw | TizenClaw 현황 |
+|------|---------|----------|-------------|
+| 예약 작업 | 기본 cron 지원 | cron 표현식, 간격 반복, 일회성 | `schedule_alarm` (단순 알람만) |
+| 작업 DB | ❌ | SQLite (tasks, task_run_logs) | ❌ |
+| 실행 이력 | ❌ | `logTaskRun()` | ❌ |
+
+**다중 채널 아키텍처**
+
+| 항목 | OpenClaw | NanoClaw | TizenClaw 현황 |
+|------|---------|----------|-------------|
+| 채널 레지스트리 | 정적 등록 | 자기 등록 패턴 | 하드코딩 (Telegram, MCP 개별 구현) |
+| 지원 채널 | 8+ | 5 | 2 |
+| 채널 추가 용이성 | 플러그인 기반 | 스킬로 채널 추가 | 코드 수정 필요 |
+
+**모델 관리 고도화**
+
+| 항목 | OpenClaw | NanoClaw | TizenClaw 현황 |
+|------|---------|----------|-------------|
+| 모델 폴백 | `model-fallback.ts` (18,501 LOC) | ❌ | ❌ (실패 시 에러만) |
+| Auth 프로필 로테이션 | API 키 쿨다운, 라운드로빈 | ❌ | ❌ |
+| 프로바이더 자동 감지 | Ollama 모델 자동 발견 | ❌ | ❌ |
+
+**도구 루프 감지 및 안전 장치**
+
+| 항목 | OpenClaw | NanoClaw | TizenClaw 현황 |
+|------|---------|----------|-------------|
+| 도구 루프 감지 | `tool-loop-detection.ts` (18,674 LOC) | 타임아웃 + 아이들 감지 | `kMaxIterations = 5` 단순 카운터 |
+| tool_call_id 매핑 | 정확한 ID 추적 | Claude SDK 네이티브 | `call_0`, `toolu_0` 하드코딩 |
+| 실행 타임아웃 | 도구별 세밀한 타임아웃 | 컨테이너 레벨 타임아웃 | ❌ 없음 |
+
+#### 🟢 낮은 우선순위 (UX/인프라 Gap)
+
+**스킬 생명주기 관리**
+
+| 항목 | OpenClaw | NanoClaw | TizenClaw 현황 |
+|------|---------|----------|-------------|
+| 스킬 설치/제거 | 원격 다운로드, 추출, 검증 | apply, rebase, replay, uninstall | 수동 복사 |
+| 스킬 마켓플레이스 | ClawHub (`clawhub.ai`) | ❌ | ❌ |
+| 핫 리로드 | 런타임 스킬 업데이트 | ❌ | ❌ |
+
+**시스템 프롬프트 / 영구 저장소 / 에러 복구 / 로깅**
+
+| 항목 | OpenClaw | NanoClaw | TizenClaw 현황 |
+|------|---------|----------|-------------|
+| 시스템 프롬프트 | 동적 생성, 도구 목록 포함 | 그룹별 커스텀 프롬프트 | 하드코딩 문자열 |
+| DB 엔진 | SQLite + sqlite-vec | SQLite (better-sqlite3) | ❌ 없음 |
+| 세션 복구 | 크래시 복구, 트랜스크립트 수리 | 미결 메시지 복구 | ❌ |
+| 로깅 | 구조화 로깅 (Pino) | Pino (JSON) | dlog (단순 텍스트) |
+| 사용량 추적 | 모델별 토큰 사용량 | ❌ | ❌ |
 
 ---
 
-## 6. 기술 부채 및 개선 포인트
+## 6. TizenClaw만의 강점
+
+| 강점 | 설명 |
+|------|------|
+| **네이티브 C++ 성능** | TypeScript 대비 낮은 메모리/CPU 사용량. 임베디드 환경에 최적 |
+| **OCI 컨테이너 격리** | crun 기반 `seccomp` + `namespace` 격리. OpenClaw/NanoClaw보다 세밀한 syscall 제어 |
+| **Tizen C-API 직접 호출** | ctypes 래퍼를 통한 디바이스 하드웨어 직접 제어 (배터리, Wi-Fi, 블루투스, 햅틱 등) |
+| **강력한 다중 LLM 지원** | 5개 백엔드 (Gemini, OpenAI, Claude, xAI, Ollama)를 런타임 전환 가능 |
+| **경량 배포** | systemd 서비스 + RPM 패키징. 서버 없이 디바이스 독립 실행 |
+| **MCP Server 지원** | Claude Desktop에서 sdb를 통해 디바이스를 직접 제어할 수 있는 고유 기능 |
+
+---
+
+## 7. 기술 부채 및 개선 포인트
 
 | 항목 | 현재 상태 | 개선 방향 |
 |------|----------|----------|
@@ -311,13 +377,12 @@ tizenclaw/
 | SSL 검증 | CA 번들 자동 탐색 (✅ 개선됨) | Tizen 플랫폼 CA 경로 통합 |
 | 에러 로깅 | dlog만 사용 | 구조화 로깅 (레벨별 + 원격 수집) |
 | 스킬 출력 파싱 | stdout JSON 그대로 반환 | JSON 스키마 검증 추가 |
-| telegram_listener 배포 | ~~수동 실행~~ 데몬 자식 프로세스 (fork+exec) | ✅ TelegramBridge 모듈로 해결 |
 | MCP Server 실행 방식 | `subprocess`로 스킬 직접 실행 | Daemon IPC를 통한 Agentic Loop 활용 |
 | 동시 IPC 처리 | 순차 처리 (한 번에 하나의 클라이언트) | 스레드풀 또는 비동기 I/O |
 
 ---
 
-## 7. 코드 통계
+## 8. 코드 통계
 
 | 카테고리 | 파일 수 | LOC |
 |---------|--------|-----|

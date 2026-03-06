@@ -1,7 +1,7 @@
 # TizenClaw 개발 로드맵 v2.0
 
 > **작성일**: 2026-03-05
-> **기반 문서**: [경쟁 분석](competitive_analysis.md) | [프로젝트 분석](project_analysis.md)
+> **기반 문서**: [프로젝트 분석](ANALYSIS.md) | [설계 문서](DESIGN.md)
 
 ---
 
