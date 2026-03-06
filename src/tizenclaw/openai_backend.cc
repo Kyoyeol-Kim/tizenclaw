@@ -129,6 +129,17 @@ LlmResponse OpenAiBackend::ParseOpenAiResponse(
       resp.text =
           msg["content"].get<std::string>();
     }
+
+    // Parse token usage
+    if (j.contains("usage")) {
+      auto& u = j["usage"];
+      resp.prompt_tokens =
+          u.value("prompt_tokens", 0);
+      resp.completion_tokens =
+          u.value("completion_tokens", 0);
+      resp.total_tokens =
+          u.value("total_tokens", 0);
+    }
   } catch (const std::exception& e) {
     resp.success = false;
     resp.error_message =
@@ -144,8 +155,10 @@ LlmResponse OpenAiBackend::Chat(
     const std::string& system_prompt) {
   auto oai_msgs = ToOpenAiMessages(messages);
   if (!system_prompt.empty()) {
-    oai_msgs.insert(oai_msgs.begin(),
-        {{"role", "system"}, {"content", system_prompt}});
+    nlohmann::json sys_msg;
+    sys_msg["role"] = "system";
+    sys_msg["content"] = system_prompt;
+    oai_msgs.insert(oai_msgs.begin(), sys_msg);
   }
   nlohmann::json payload = {
       {"model", model_},

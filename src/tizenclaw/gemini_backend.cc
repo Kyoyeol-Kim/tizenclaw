@@ -128,6 +128,17 @@ LlmResponse GeminiBackend::ParseGeminiResponse(
             part["text"].get<std::string>();
       }
     }
+
+    // Parse token usage from usageMetadata
+    if (j.contains("usageMetadata")) {
+      auto& um = j["usageMetadata"];
+      resp.prompt_tokens =
+          um.value("promptTokenCount", 0);
+      resp.completion_tokens =
+          um.value("candidatesTokenCount", 0);
+      resp.total_tokens =
+          um.value("totalTokenCount", 0);
+    }
   } catch (const std::exception& e) {
     resp.success = false;
     resp.error_message =

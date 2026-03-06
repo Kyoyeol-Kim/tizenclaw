@@ -115,6 +115,18 @@ AnthropicBackend::ParseAnthropicResponse(
         resp.tool_calls.push_back(tc);
       }
     }
+
+    // Parse token usage
+    if (j.contains("usage")) {
+      auto& u = j["usage"];
+      resp.prompt_tokens =
+          u.value("input_tokens", 0);
+      resp.completion_tokens =
+          u.value("output_tokens", 0);
+      resp.total_tokens =
+          resp.prompt_tokens +
+          resp.completion_tokens;
+    }
   } catch (const std::exception& e) {
     resp.success = false;
     resp.error_message =

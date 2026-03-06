@@ -11,21 +11,27 @@ using namespace tizenclaw;
 class SessionStoreTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        test_dir_ = "/tmp/tizenclaw_test_sessions";
+        base_dir_ =
+            "/tmp/tizenclaw_test_store";
+        test_dir_ = base_dir_ + "/sessions";
+        mkdir(base_dir_.c_str(), 0700);
         mkdir(test_dir_.c_str(), 0700);
         store_.SetDirectory(test_dir_);
     }
 
     void TearDown() override {
-        // Clean up test files
-        (void)system(("rm -rf " + test_dir_).c_str());
+        // Clean up all test dirs
+        (void)system((
+            "rm -rf " + base_dir_).c_str());
     }
 
+    std::string base_dir_;
     std::string test_dir_;
     SessionStore store_;
 };
 
-TEST_F(SessionStoreTest, SaveAndLoadSession) {
+TEST_F(SessionStoreTest,
+    SaveAndLoadMarkdownSession) {
     std::vector<LlmMessage> history;
 
     LlmMessage user_msg;
@@ -38,8 +44,33 @@ TEST_F(SessionStoreTest, SaveAndLoadSession) {
     assistant_msg.text = "Hi there!";
     history.push_back(assistant_msg);
 
-    EXPECT_TRUE(store_.SaveSession("test1", history));
+    EXPECT_TRUE(
+        store_.SaveSession("test1", history));
 
+    // Verify file is .md format
+    std::ifstream check(
+        test_dir_ + "/test1.md");
+    EXPECT_TRUE(check.is_open());
+    std::string content(
+        (std::istreambuf_iterator<char>(check)),
+        std::istreambuf_iterator<char>());
+    check.close();
+
+    // Should contain YAML frontmatter
+    EXPECT_TRUE(
+        content.find("---") != std::string::npos);
+    EXPECT_TRUE(
+        content.find("message_count: 2")
+        != std::string::npos);
+    // Should contain role headers
+    EXPECT_TRUE(
+        content.find("## user")
+        != std::string::npos);
+    EXPECT_TRUE(
+        content.find("## assistant")
+        != std::string::npos);
+
+    // Load and verify
     auto loaded = store_.LoadSession("test1");
     ASSERT_EQ(loaded.size(), 2u);
     EXPECT_EQ(loaded[0].role, "user");
@@ -48,11 +79,13 @@ TEST_F(SessionStoreTest, SaveAndLoadSession) {
     EXPECT_EQ(loaded[1].text, "Hi there!");
 }
 
-TEST_F(SessionStoreTest, SaveWithToolCalls) {
+TEST_F(SessionStoreTest,
+    MarkdownWithToolCalls) {
     std::vector<LlmMessage> history;
 
     LlmMessage assistant_msg;
     assistant_msg.role = "assistant";
+    assistant_msg.text = "Let me check.";
     LlmToolCall tc;
     tc.id = "call_abc123";
     tc.name = "list_apps";
@@ -67,28 +100,68 @@ TEST_F(SessionStoreTest, SaveWithToolCalls) {
     tool_msg.tool_result = {{"apps", {"app1"}}};
     history.push_back(tool_msg);
 
-    EXPECT_TRUE(store_.SaveSession("test2", history));
+    EXPECT_TRUE(
+        store_.SaveSession("test2", history));
 
     auto loaded = store_.LoadSession("test2");
     ASSERT_EQ(loaded.size(), 2u);
-    EXPECT_EQ(loaded[0].tool_calls.size(), 1u);
-    EXPECT_EQ(loaded[0].tool_calls[0].id,
-              "call_abc123");
-    EXPECT_EQ(loaded[0].tool_calls[0].name,
-              "list_apps");
-    EXPECT_EQ(loaded[1].tool_call_id,
-              "call_abc123");
-    EXPECT_EQ(loaded[1].tool_name, "list_apps");
+
+    // Verify assistant message with tool calls
+    EXPECT_EQ(loaded[0].role, "assistant");
+    EXPECT_EQ(loaded[0].text, "Let me check.");
+    ASSERT_EQ(
+        loaded[0].tool_calls.size(), 1u);
+    EXPECT_EQ(
+        loaded[0].tool_calls[0].id,
+        "call_abc123");
+    EXPECT_EQ(
+        loaded[0].tool_calls[0].name,
+        "list_apps");
+
+    // Verify tool result
+    EXPECT_EQ(loaded[1].role, "tool");
+    EXPECT_EQ(
+        loaded[1].tool_call_id, "call_abc123");
+    EXPECT_EQ(
+        loaded[1].tool_name, "list_apps");
 }
 
-TEST_F(SessionStoreTest, LoadNonExistentSession) {
-    auto loaded = store_.LoadSession("nonexistent");
+TEST_F(SessionStoreTest,
+    MarkdownWithCompressedTurn) {
+    std::vector<LlmMessage> history;
+
+    // Simulate compressed message
+    LlmMessage compressed;
+    compressed.role = "assistant";
+    compressed.text =
+        "[compressed] User asked about weather.";
+    history.push_back(compressed);
+
+    LlmMessage user_msg;
+    user_msg.role = "user";
+    user_msg.text = "What about tomorrow?";
+    history.push_back(user_msg);
+
+    EXPECT_TRUE(
+        store_.SaveSession("test3", history));
+
+    auto loaded = store_.LoadSession("test3");
+    ASSERT_EQ(loaded.size(), 2u);
+    EXPECT_TRUE(loaded[0].text.find(
+        "[compressed]") != std::string::npos);
+}
+
+TEST_F(SessionStoreTest,
+    LoadNonExistentSession) {
+    auto loaded =
+        store_.LoadSession("nonexistent");
     EXPECT_TRUE(loaded.empty());
 }
 
 TEST_F(SessionStoreTest, SaveEmptySession) {
     std::vector<LlmMessage> empty;
-    EXPECT_FALSE(store_.SaveSession("empty", empty));
+    EXPECT_FALSE(
+        store_.SaveSession("empty", empty));
 }
 
 TEST_F(SessionStoreTest, DeleteSession) {
@@ -99,10 +172,64 @@ TEST_F(SessionStoreTest, DeleteSession) {
     history.push_back(msg);
 
     store_.SaveSession("del_test", history);
-    auto loaded = store_.LoadSession("del_test");
+    auto loaded =
+        store_.LoadSession("del_test");
     EXPECT_FALSE(loaded.empty());
 
     store_.DeleteSession("del_test");
     loaded = store_.LoadSession("del_test");
     EXPECT_TRUE(loaded.empty());
+}
+
+TEST_F(SessionStoreTest,
+    JsonToMarkdownMigration) {
+    // Write legacy JSON session file manually
+    std::string json_path =
+        test_dir_ + "/migrate_test.json";
+    nlohmann::json arr = nlohmann::json::array();
+    arr.push_back({
+        {"role", "user"},
+        {"text", "Old JSON message"}
+    });
+    arr.push_back({
+        {"role", "assistant"},
+        {"text", "Old JSON response"}
+    });
+
+    std::ofstream out(json_path);
+    out << arr.dump(2);
+    out.close();
+
+    // Load should auto-migrate
+    auto loaded =
+        store_.LoadSession("migrate_test");
+    ASSERT_EQ(loaded.size(), 2u);
+    EXPECT_EQ(loaded[0].role, "user");
+    EXPECT_EQ(loaded[0].text,
+              "Old JSON message");
+
+    // After migration, .md file should exist
+    std::ifstream md_check(
+        test_dir_ + "/migrate_test.md");
+    EXPECT_TRUE(md_check.is_open());
+
+    // And .json should be deleted
+    std::ifstream json_check(json_path);
+    EXPECT_FALSE(json_check.is_open());
+}
+
+TEST_F(SessionStoreTest,
+    LogAndLoadTokenUsage) {
+    store_.LogTokenUsage(
+        "usage_test", "gemini", 100, 50);
+    store_.LogTokenUsage(
+        "usage_test", "gemini", 200, 80);
+
+    auto summary =
+        store_.LoadTokenUsage("usage_test");
+    EXPECT_EQ(
+        summary.total_prompt_tokens, 300);
+    EXPECT_EQ(
+        summary.total_completion_tokens, 130);
+    EXPECT_EQ(summary.entries.size(), 2u);
 }

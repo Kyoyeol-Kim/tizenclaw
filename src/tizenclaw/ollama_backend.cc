@@ -117,6 +117,15 @@ LlmResponse OllamaBackend::ParseOllamaResponse(
       resp.text =
           msg["content"].get<std::string>();
     }
+
+    // Parse token usage
+    resp.prompt_tokens =
+        j.value("prompt_eval_count", 0);
+    resp.completion_tokens =
+        j.value("eval_count", 0);
+    resp.total_tokens =
+        resp.prompt_tokens +
+        resp.completion_tokens;
   } catch (const std::exception& e) {
     resp.success = false;
     resp.error_message =

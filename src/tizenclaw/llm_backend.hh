@@ -37,6 +37,11 @@ struct LlmResponse {
   std::string error_message;
   std::vector<LlmToolCall> tool_calls;
 
+  // Token usage (parsed from API response)
+  int prompt_tokens = 0;
+  int completion_tokens = 0;
+  int total_tokens = 0;
+
   bool HasToolCalls() const {
     return !tool_calls.empty();
   }

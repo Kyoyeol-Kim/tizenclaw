@@ -68,7 +68,12 @@ private:
     std::string BuildSystemPrompt(
         const std::vector<LlmToolDecl>& tools);
 
-    // Trim session history to kMaxHistorySize
+    // Compact history via LLM summarization
+    // MUST be called with session_mutex_ held
+    void CompactHistory(
+        const std::string& session_id);
+
+    // Trim session history (compaction + FIFO)
     void TrimHistory(
         const std::string& session_id);
 
@@ -84,7 +89,10 @@ private:
              std::vector<LlmMessage>> m_sessions;
     std::mutex session_mutex_; // Protects m_sessions
 
-    static constexpr size_t kMaxHistorySize = 20;
+    static constexpr size_t kMaxHistorySize = 30;
+    static constexpr size_t kCompactionThreshold
+        = 15;
+    static constexpr size_t kCompactionCount = 10;
     static constexpr int kMaxIterations = 5;
 
     SessionStore session_store_;

@@ -1,6 +1,7 @@
 #include <curl/curl.h>
 #include <fstream>
 #include <iostream>
+#include <chrono>
 #include <dirent.h>
 #include <sys/stat.h>
 
@@ -202,6 +203,21 @@ std::string AgentCore::ProcessPrompt(
       return "Error: " + resp.error_message;
     }
 
+    // Log token usage
+    if (resp.total_tokens > 0) {
+      session_store_.LogTokenUsage(
+          session_id,
+          m_backend->GetName(),
+          resp.prompt_tokens,
+          resp.completion_tokens);
+      LOG(INFO) << "Tokens: prompt="
+                << resp.prompt_tokens
+                << " completion="
+                << resp.completion_tokens
+                << " total="
+                << resp.total_tokens;
+    }
+
     if (!resp.HasToolCalls()) {
       // No more tool calls — final text response
       LlmMessage model_msg;
@@ -246,11 +262,14 @@ std::string AgentCore::ProcessPrompt(
     };
     std::vector<std::future<ToolExecResult>> futures;
     for (auto& tc : resp.tool_calls) {
-      futures.push_back(std::async(std::launch::async,
-          [this, tc]() {
+      futures.push_back(std::async(
+          std::launch::async,
+          [this, tc, &session_id]() {
         ToolExecResult r;
         r.id = tc.id;
         r.name = tc.name;
+        auto start =
+            std::chrono::steady_clock::now();
         if (tc.name == "execute_code") {
           std::string code =
               tc.args.value("code", "");
@@ -268,6 +287,18 @@ std::string AgentCore::ProcessPrompt(
           r.output = ExecuteSkill(
               tc.name, tc.args);
         }
+        auto elapsed =
+            std::chrono::duration_cast<
+                std::chrono::milliseconds>(
+                std::chrono::steady_clock::now()
+                - start).count();
+        // Log skill execution
+        session_store_.LogSkillExecution(
+            session_id, tc.name, tc.args,
+            r.output.substr(
+                0, std::min((size_t)200,
+                            r.output.size())),
+            static_cast<int>(elapsed));
         return r;
       }));
     }
@@ -558,10 +589,131 @@ std::string AgentCore::BuildSystemPrompt(
   return prompt;
 }
 
+void AgentCore::CompactHistory(
+    const std::string& session_id) {
+  // MUST be called with session_mutex_ held
+  auto& history = m_sessions[session_id];
+  if (history.size() <= kCompactionThreshold) {
+    return;  // Below threshold, no compaction
+  }
+  if (!m_backend) return;
+
+  // Gather oldest N messages to summarize
+  size_t count = std::min(
+      kCompactionCount, history.size() - 2);
+  if (count < 2) return;
+
+  std::vector<LlmMessage> to_summarize(
+      history.begin(),
+      history.begin() + count);
+
+  // Build compaction prompt
+  std::string summary_prompt;
+  for (auto& msg : to_summarize) {
+    summary_prompt += msg.role + ": ";
+    if (!msg.text.empty()) {
+      summary_prompt += msg.text;
+    }
+    if (!msg.tool_calls.empty()) {
+      summary_prompt += "[called tools: ";
+      for (auto& tc : msg.tool_calls) {
+        summary_prompt += tc.name + " ";
+      }
+      summary_prompt += "]";
+    }
+    if (msg.role == "tool" &&
+        !msg.tool_name.empty()) {
+      summary_prompt += "[" + msg.tool_name
+          + " result]";
+    }
+    summary_prompt += "\n";
+  }
+
+  LlmMessage compact_prompt;
+  compact_prompt.role = "user";
+  compact_prompt.text =
+      "Summarize this conversation concisely "
+      "in 2-3 sentences. Preserve key facts, "
+      "decisions, and results. Respond ONLY "
+      "with the summary, nothing else:\n\n"
+      + summary_prompt;
+
+  std::vector<LlmMessage> compact_msgs;
+  compact_msgs.push_back(compact_prompt);
+
+  // Release lock temporarily for LLM call
+  // (we hold a copy of what we need)
+  session_mutex_.unlock();
+
+  LlmResponse resp;
+  try {
+    resp = m_backend->Chat(
+        compact_msgs,
+        {},       // no tools for compaction
+        nullptr,  // no streaming
+        "");      // no system prompt
+  } catch (...) {
+    session_mutex_.lock();
+    LOG(WARNING) << "Compaction LLM call failed";
+    return;
+  }
+
+  session_mutex_.lock();
+
+  // Verify session still exists after re-lock
+  if (m_sessions.find(session_id) ==
+      m_sessions.end()) {
+    return;
+  }
+  auto& hist = m_sessions[session_id];
+
+  if (!resp.success || resp.text.empty()) {
+    LOG(WARNING) << "Compaction failed, "
+                 << "falling back to FIFO";
+    // Fallback: simple FIFO trim
+    while (hist.size() >
+           kCompactionThreshold) {
+      hist.erase(hist.begin());
+    }
+    return;
+  }
+
+  // Replace oldest N turns with 1 compressed
+  LlmMessage compressed;
+  compressed.role = "assistant";
+  compressed.text =
+      "[compressed] " + resp.text;
+
+  hist.erase(
+      hist.begin(),
+      hist.begin() + count);
+  hist.insert(hist.begin(), compressed);
+
+  LOG(INFO) << "Compacted " << count
+            << " turns into 1 for session: "
+            << session_id;
+
+  // Log compaction token usage if available
+  if (resp.total_tokens > 0) {
+    session_store_.LogTokenUsage(
+        session_id,
+        m_backend->GetName() + "_compaction",
+        resp.prompt_tokens,
+        resp.completion_tokens);
+  }
+}
+
 void AgentCore::TrimHistory(
     const std::string& session_id) {
   // MUST be called with session_mutex_ held
   auto& history = m_sessions[session_id];
+
+  // First, try LLM-based compaction
+  if (history.size() > kCompactionThreshold) {
+    CompactHistory(session_id);
+  }
+
+  // Hard limit fallback (FIFO)
   while (history.size() > kMaxHistorySize) {
     history.erase(history.begin());
   }
