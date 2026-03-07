@@ -77,6 +77,56 @@ does not provide the `pkgconfig(lxc)` dependency.
 
 ---
 
+## ⚠️ Shell 명령 실행 시 주의사항 (AGENT 필독)
+
+이 프로젝트의 개발 환경(WSL)에서 `run_command` 도구로 실행한 명령의 stdout/stderr가 `command_status`에 캡처되지 않는 경우가 빈번합니다. 특히 `sudo`, `chroot`, `fakeroot` 등을 내부적으로 사용하는 `gbs build`는 **항상 "No output"**으로 표시됩니다.
+
+### ❌ 절대 하지 말 것
+1. **파이프(`|`) 사용 금지** — `tail`, `grep` 등으로 파이프하면 버퍼링으로 인해 출력이 전혀 보이지 않습니다.
+   - ❌ `gbs build -A x86_64 --include-all 2>&1 | tail -50`
+   - ❌ `git log | head -20`
+2. **"No output"을 "멈춤"으로 판단하지 말 것** — 명령은 정상 실행 중일 수 있습니다.
+3. **출력이 없다고 반복적으로 `command_status`를 호출하지 말 것** — 불필요한 대기를 유발합니다.
+
+### ✅ 올바른 패턴
+
+#### `gbs build` 빌드 완료 감지
+```bash
+# 1. 빌드 실행 (WaitMsBeforeAsync=3000)
+gbs build -A x86_64 --include-all --noinit 2>&1
+
+# 2. RPM 수정시간 폴링으로 완료 감지 (command_status WaitDurationSeconds=60, 최대 5회)
+stat -c '%Y' ~/GBS-ROOT/local/repos/tizen/x86_64/RPMS/tizenclaw-*.x86_64.rpm 2>/dev/null
+
+# 3. 빌드 결과 확인
+ls -lt ~/GBS-ROOT/local/repos/tizen/x86_64/logs/success/ 2>/dev/null | head -3
+ls -lt ~/GBS-ROOT/local/repos/tizen/x86_64/logs/fail/ 2>/dev/null | head -3
+
+# 4. 테스트 결과 확인
+grep -E "PASSED|FAILED|tests from" ~/GBS-ROOT/local/repos/tizen/x86_64/logs/success/tizenclaw-*/log.txt | tail -5
+```
+
+#### `git` 명령 실행
+```bash
+# git add, commit, push 등은 WaitMsBeforeAsync=10000 으로 설정하여
+# 동기적으로 완료될 수 있도록 합니다.
+# 출력이 없어도 Exit code: 0 이면 성공입니다.
+git add <files>
+git commit -m "message"
+git push origin main
+```
+
+#### 일반 shell 명령
+```bash
+# sdb, curl 등 짧은 명령은 WaitMsBeforeAsync=5000~10000 설정
+# 출력이 캡처되지 않으면 Exit code로 성공 여부 판단
+```
+
+> [!CAUTION]
+> `command_status`에서 "No output"이 반복되면 **명령이 정상 실행 중**일 가능성이 높습니다. 절대로 "멈춤"으로 판단하여 terminate하거나 동일 명령을 재실행하지 마세요. 위의 폴링 패턴을 사용하세요.
+
+---
+
 ## 워크플로우 참조 목록
 본 AGENTS 워크플로우에서 참조하는 세부 워크플로우 파일 목록입니다.
 
