@@ -206,9 +206,15 @@ EOF
 
 prepare_bundle() {
   mkdir -p "${BUNDLE_DIR}/rootfs"
-  if [ ! -f "${BUNDLE_DIR}/.extracted" ]; then
+  # Check if rootfs has content (bin/ dir exists)
+  # instead of relying on a marker file that
+  # gets removed by RPM updates.
+  if [ ! -d "${BUNDLE_DIR}/rootfs/bin" ]; then
+    log "Extracting rootfs tarball..."
+    rm -rf "${BUNDLE_DIR}/rootfs"
+    mkdir -p "${BUNDLE_DIR}/rootfs"
     tar -xzf "${ROOTFS_TAR}" -C "${BUNDLE_DIR}/rootfs"
-    touch "${BUNDLE_DIR}/.extracted"
+    log "Rootfs extraction complete"
   fi
   write_config
 }

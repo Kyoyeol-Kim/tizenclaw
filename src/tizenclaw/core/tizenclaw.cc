@@ -48,8 +48,21 @@ int TizenClawDaemon::Run() {
     std::signal(SIGTERM, signal_handler);
 
     int ret = tizen_core_task_run(task_);
+    if (ret != 0) {
+        // Fallback: tizen_core event loop failed
+        // (e.g., no D-Bus in chroot environment).
+        // Keep running since IPC and channels
+        // operate in their own threads.
+        LOG(WARNING) << "tizen_core_task_run "
+                     << "returned " << ret
+                     << ", using fallback loop";
+        while (ipc_running_) {
+            std::this_thread::sleep_for(
+                std::chrono::seconds(1));
+        }
+    }
     OnDestroy();
-    return ret;
+    return 0;
 }
 
 void TizenClawDaemon::Quit() {
