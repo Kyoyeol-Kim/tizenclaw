@@ -110,7 +110,7 @@ timeline
                        : Admin authentication
                        : Web config editor
                        : Branding integration
-        Phase 17       : 🔴 Multi-Agent Orchestration
+        Phase 17 (Done) : Multi-Agent Orchestration
                        : Supervisor agent pattern
                        : Skill pipeline engine
                        : A2A protocol
@@ -622,7 +622,7 @@ timeline
 
 ---
 
-## Phase 17: Multi-Agent Orchestration (Proposed)
+## Phase 17: Multi-Agent Orchestration ✅ (Completed 2026-03-07)
 
 > **Goal**: Advanced multi-agent patterns for complex autonomous workflows
 
@@ -631,17 +631,18 @@ timeline
 |------|---------|
 | **Gap** | Agent-to-Agent is flat messaging — no hierarchical delegation |
 | **Ref** | OpenClaw: `sessions_send` · LangGraph: Supervisor pattern |
-| **Plan** | Supervisor agent decomposes goals → delegates to specialized role agents → validates results |
+| **Impl** | `SupervisorEngine` decomposes goals → delegates to specialized role agents → validates results |
 
-**Implementation Direction:**
-- `AgentRole` struct: role name, system prompt, allowed tools
-- `SupervisorLoop`: goal → plan → delegate → collect → validate → report
-- Configurable via `agent_roles.json`
+**Implementation:**
+- `AgentRole` struct: role name, system prompt, allowed tools, priority
+- `SupervisorEngine`: goal decomposition via LLM, delegation to role agents, result aggregation
+- Configurable via `agent_roles.json` (sample: `device_controller`, `researcher`, `writer`)
+- Built-in tools: `run_supervisor`, `list_agent_roles`
 
 **Done When:**
-- [ ] Role-based agent creation with tool restrictions
-- [ ] Supervisor goal decomposition and delegation loop
-- [ ] Result aggregation and validation
+- [x] Role-based agent creation with tool restrictions
+- [x] Supervisor goal decomposition and delegation loop
+- [x] Result aggregation and validation
 
 ---
 
@@ -650,19 +651,21 @@ timeline
 |------|---------|
 | **Gap** | Only LLM-reactive tool execution — no deterministic workflows |
 | **Ref** | LangChain: Chains · n8n: workflow automation |
-| **Plan** | Pre-defined sequential/conditional skill execution with data flow between stages |
+| **Impl** | `PipelineExecutor` for sequential/conditional skill execution with data flow between stages |
 
-**Implementation Direction:**
-- `PipelineExecutor` class: load pipeline JSON → sequential step execution → `{{variable}}` interpolation
-- Error handling: per-step retry, skip-on-failure
-- Built-in tools: `create_pipeline`, `list_pipelines`, `run_pipeline`
+**Implementation:**
+- `PipelineExecutor` class: CRUD operations, sequential step execution, `{{variable}}` interpolation (including dotted access)
+- Error handling: per-step retry, skip-on-failure, max retries
+- Conditional branching (`if/then/else`) with step expression evaluation
+- JSON persistence in `pipelines/` directory
+- Built-in tools: `create_pipeline`, `list_pipelines`, `run_pipeline`, `delete_pipeline`
 - Integration with `TaskScheduler` for cron-triggered pipelines
 
 **Done When:**
-- [ ] Pipeline JSON format: steps, triggers, variable interpolation
-- [ ] Sequential execution with output passing
-- [ ] Conditional branching (`if/then/else`)
-- [ ] TaskScheduler integration for scheduled pipelines
+- [x] Pipeline JSON format: steps, triggers, variable interpolation
+- [x] Sequential execution with output passing
+- [x] Conditional branching (`if/then/else`)
+- [x] TaskScheduler integration for scheduled pipelines
 
 ---
 
@@ -671,12 +674,19 @@ timeline
 |------|---------|
 | **Gap** | No cross-device agent coordination |
 | **Ref** | Google A2A Protocol specification |
-| **Plan** | HTTP/WebSocket-based inter-device agent communication |
+| **Impl** | HTTP-based inter-device agent communication with JSON-RPC 2.0 |
+
+**Implementation:**
+- `A2AHandler` class: Agent Card generation, JSON-RPC 2.0 dispatch, task lifecycle management
+- Bearer token authentication with configurable tokens via `a2a_config.json`
+- Task status lifecycle: submitted → working → completed / failed / cancelled
+- Endpoints: `/.well-known/agent.json` (Agent Card), `/api/a2a` (JSON-RPC)
+- Methods: `tasks/send`, `tasks/get`, `tasks/cancel`
 
 **Done When:**
-- [ ] A2A endpoint on WebDashboard HTTP server
-- [ ] Agent Card discovery (`.well-known/agent.json`)
-- [ ] Task lifecycle: submit → working → artifact → done
+- [x] A2A endpoint on WebDashboard HTTP server
+- [x] Agent Card discovery (`.well-known/agent.json`)
+- [x] Task lifecycle: submit → working → artifact → done
 
 ---
 
@@ -749,7 +759,7 @@ graph TD
     style P14 fill:#4ecdc4,color:#fff
     style P15 fill:#4ecdc4,color:#fff
     style P16 fill:#4ecdc4,color:#fff
-    style P17 fill:#ff6b6b,color:#fff
+    style P17 fill:#4ecdc4,color:#fff
     style P18 fill:#ffd93d,color:#fff
 ```
 
@@ -764,8 +774,8 @@ graph TD
 | **14** | New channels & integrations | ~1,200 | ✅ Done | Phase 12 ✅ |
 | **15** | Advanced platform features | ~2,000 | ✅ Done | Phase 13, 14 ✅ |
 | **16** | Operational excellence | ~800 | ✅ Done | Phase 15 ✅ |
-| **17** | Multi-Agent orchestration | ~2,000 | 🔴 High | Phase 16 ✅ |
-| **18** | Production readiness | ~1,500 | 🟡 Medium | Phase 16 ✅ |
+| **17** | Multi-Agent orchestration | ~3,950 | ✅ Done | Phase 16 ✅ |
+| **18** | Production readiness | ~1,500 | 🔴 High | Phase 17 ✅ |
 
-> **Current codebase**: ~17,400 LOC across ~76 files
-> **Projected with Phase 17-18**: ~20,900 LOC
+> **Current codebase**: ~21,350 LOC across ~82 files
+> **Projected with Phase 18**: ~22,850 LOC

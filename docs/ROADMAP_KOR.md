@@ -110,7 +110,7 @@ timeline
                        : 관리자 인증
                        : 웹 설정 편집기
                        : 브랜딩 통합
-        Phase 17       : 🔴 멀티 에이전트 오케스트레이션
+        Phase 17 (완료) : 멀티 에이전트 오케스트레이션
                        : 슈퍼바이저 에이전트 패턴
                        : 스킬 파이프라인 엔진
                        : A2A 프로토콜
@@ -622,7 +622,7 @@ timeline
 
 ---
 
-## Phase 17: 멀티 에이전트 오케스트레이션 (제안)
+## Phase 17: 멀티 에이전트 오케스트레이션 ✅ (2026-03-07 완료)
 
 > **목표**: 복잡한 자율 워크플로우를 위한 고급 멀티 에이전트 패턴
 
@@ -631,17 +631,18 @@ timeline
 |------|------|
 | **갭** | 에이전트 간 통신이 평면적 메시징 — 계층적 위임 없음 |
 | **참고** | OpenClaw: `sessions_send` · LangGraph: Supervisor 패턴 |
-| **계획** | 슈퍼바이저 에이전트가 목표 분해 → 전문 역할 에이전트에 위임 → 결과 검증 |
+| **구현** | `SupervisorEngine`이 목표 분해 → 전문 역할 에이전트에 위임 → 결과 검증 |
 
-**구현 방향:**
-- `AgentRole` 구조체: 역할명, 시스템 프롬프트, 허용 도구
-- `SupervisorLoop`: 목표 → 계획 → 위임 → 수집 → 검증 → 보고
-- `agent_roles.json`으로 설정 가능
+**구현 내용:**
+- `AgentRole` 구조체: 역할명, 시스템 프롬프트, 허용 도구, 우선순위
+- `SupervisorEngine`: LLM을 통한 목표 분해, 역할 에이전트에 위임, 결과 집계
+- `agent_roles.json`으로 설정 가능 (샘플: `device_controller`, `researcher`, `writer`)
+- 내장 도구: `run_supervisor`, `list_agent_roles`
 
 **완료 기준:**
-- [ ] 도구 제한이 있는 역할 기반 에이전트 생성
-- [ ] 슈퍼바이저 목표 분해 및 위임 루프
-- [ ] 결과 집계 및 검증
+- [x] 도구 제한이 있는 역할 기반 에이전트 생성
+- [x] 슈퍼바이저 목표 분해 및 위임 루프
+- [x] 결과 집계 및 검증
 
 ---
 
@@ -650,19 +651,21 @@ timeline
 |------|------|
 | **갭** | LLM 반응적 도구 실행만 — 결정적 워크플로우 없음 |
 | **참고** | LangChain: Chains · n8n: 워크플로우 자동화 |
-| **계획** | 단계 간 데이터 흐름을 가진 사전 정의된 순차/조건 스킬 실행 |
+| **구현** | `PipelineExecutor`로 단계 간 데이터 흐름을 가진 순차/조건 스킬 실행 |
 
-**구현 방향:**
-- `PipelineExecutor` 클래스: 파이프라인 JSON 로드 → 순차 단계 실행 → `{{variable}}` 보간
-- 에러 핸들링: 단계별 재시도, 실패 시 건너뛰기
-- 내장 도구: `create_pipeline`, `list_pipelines`, `run_pipeline`
+**구현 내용:**
+- `PipelineExecutor` 클래스: CRUD 작업, 순차 단계 실행, `{{variable}}` 보간 (점 접근 포함)
+- 에러 핸들링: 단계별 재시도, 실패 시 건너뛰기, 최대 재시도 횟수
+- 조건 분기 (`if/then/else`) — 단계 표현식 평가
+- `pipelines/` 디렉터리에 JSON 영구 저장
+- 내장 도구: `create_pipeline`, `list_pipelines`, `run_pipeline`, `delete_pipeline`
 - `TaskScheduler`와 통합하여 cron 트리거 파이프라인
 
 **완료 기준:**
-- [ ] 파이프라인 JSON 포맷: 단계, 트리거, 변수 보간
-- [ ] 출력 전달을 가진 순차 실행
-- [ ] 조건 분기 (`if/then/else`)
-- [ ] 예약 파이프라인을 위한 TaskScheduler 통합
+- [x] 파이프라인 JSON 포맷: 단계, 트리거, 변수 보간
+- [x] 출력 전달을 가진 순차 실행
+- [x] 조건 분기 (`if/then/else`)
+- [x] 예약 파이프라인을 위한 TaskScheduler 통합
 
 ---
 
@@ -671,12 +674,19 @@ timeline
 |------|------|
 | **갭** | 크로스 디바이스 에이전트 협조 불가 |
 | **참고** | Google A2A Protocol 사양 |
-| **계획** | HTTP/WebSocket 기반 디바이스 간 에이전트 통신 |
+| **구현** | JSON-RPC 2.0 기반 HTTP 디바이스 간 에이전트 통신 |
+
+**구현 내용:**
+- `A2AHandler` 클래스: Agent Card 생성, JSON-RPC 2.0 디스패치, 태스크 생명주기 관리
+- `a2a_config.json`을 통한 설정 가능한 Bearer 토큰 인증
+- 태스크 상태 생명주기: submitted → working → completed / failed / cancelled
+- 엔드포인트: `/.well-known/agent.json` (Agent Card), `/api/a2a` (JSON-RPC)
+- 메서드: `tasks/send`, `tasks/get`, `tasks/cancel`
 
 **완료 기준:**
-- [ ] WebDashboard HTTP 서버의 A2A 엔드포인트
-- [ ] Agent Card 디스커버리 (`.well-known/agent.json`)
-- [ ] 태스크 생명주기: submit → working → artifact → done
+- [x] WebDashboard HTTP 서버의 A2A 엔드포인트
+- [x] Agent Card 디스커버리 (`.well-known/agent.json`)
+- [x] 태스크 생명주기: submit → working → artifact → done
 
 ---
 
@@ -749,7 +759,7 @@ graph TD
     style P14 fill:#4ecdc4,color:#fff
     style P15 fill:#4ecdc4,color:#fff
     style P16 fill:#4ecdc4,color:#fff
-    style P17 fill:#ff6b6b,color:#fff
+    style P17 fill:#4ecdc4,color:#fff
     style P18 fill:#ffd93d,color:#fff
 ```
 
@@ -764,8 +774,8 @@ graph TD
 | **14** | 신규 채널 & 통합 | ~1,200 | ✅ 완료 | Phase 12 ✅ |
 | **15** | 고급 플랫폼 기능 | ~2,000 | ✅ 완료 | Phase 13, 14 ✅ |
 | **16** | 운영 우수성 | ~800 | ✅ 완료 | Phase 15 ✅ |
-| **17** | 멀티 에이전트 오케스트레이션 | ~2,000 | 🔴 높음 | Phase 16 ✅ |
-| **18** | 프로덕션 준비 | ~1,500 | 🟡 중간 | Phase 16 ✅ |
+| **17** | 멀티 에이전트 오케스트레이션 | ~3,950 | ✅ 완료 | Phase 16 ✅ |
+| **18** | 프로덕션 준비 | ~1,500 | 🔴 높음 | Phase 17 ✅ |
 
-> **현재 코드베이스**: ~76개 파일, ~17,400 LOC
-> **Phase 17-18 완료 시 예상**: ~20,900 LOC
+> **현재 코드베이스**: ~82개 파일, ~21,350 LOC
+> **Phase 18 완료 시 예상**: ~22,850 LOC
