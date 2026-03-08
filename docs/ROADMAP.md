@@ -1,44 +1,47 @@
 # TizenClaw Development Roadmap v4.0
 
-> **Date**: 2026-03-07
+> **Date**: 2026-03-08
 > **Reference**: [Project Analysis](ANALYSIS.md) | [System Design](DESIGN.md)
 
 ---
 
 ## Feature Comparison Matrix
 
-> Competitive analysis against **OpenClaw** (TypeScript, ~700+ files) and **NanoClaw** (TypeScript, ~50 files).
+> Competitive analysis against **OpenClaw** (TypeScript, ~700+ files), **NanoClaw** (TypeScript, ~50 files), and **ZeroClaw** (Rust, single binary).
 
-| Category | Feature | OpenClaw | NanoClaw | TizenClaw | Gap |
-|----------|---------|:--------:|:--------:|:---------:|:---:|
-| **IPC** | Multi-client concurrency | ✅ Parallel sessions | ✅ Group queue | ✅ Thread pool | ✅ |
-| **IPC** | Streaming responses | ✅ SSE / WebSocket | ✅ `onOutput` callback | ✅ Chunked IPC | ✅ |
-| **IPC** | Robust message framing | ✅ WebSocket + JSON-RPC | ✅ Sentinel markers | ✅ Length-prefix + JSON-RPC | ✅ |
-| **Memory** | Conversation persistence | ✅ SQLite + Vector DB | ✅ SQLite | ✅ Markdown (YAML frontmatter) | ✅ |
-| **Memory** | Context compaction | ✅ LLM auto-summarize | ❌ | ✅ LLM auto-summarize | ✅ |
-| **Memory** | Semantic search (RAG) | ✅ MMR + embeddings | ❌ | ✅ SQLite + cosine similarity | ✅ |
-| **LLM** | Model fallback | ✅ Auto-switch (18K LOC) | ❌ | ✅ Auto-switch + backoff | ✅ |
-| **LLM** | Token counting | ✅ Per-model accurate | ❌ | ✅ Per-model parsing | ✅ |
-| **LLM** | Usage tracking | ✅ Per-model token usage | ❌ | ✅ Daily/monthly Markdown | ✅ |
-| **Security** | Tool execution policy | ✅ Whitelist/blacklist | ❌ | ✅ Risk-level + loop detect | ✅ |
-| **Security** | Sender allowlist | ✅ `allowlist-match.ts` | ✅ `sender-allowlist.ts` | ✅ UID + chat_id | ✅ |
-| **Security** | API key management | ✅ Rotation + encrypted | ✅ stdin delivery | ✅ Device-bound encryption | ✅ |
-| **Security** | Audit logging | ✅ 45K LOC `audit.ts` | ✅ `ipc-auth.test.ts` | ✅ Markdown audit + dlog | ✅ |
-| **Security** | Admin authentication | ✅ OAuth / token | ❌ | ✅ Session-token + SHA-256 | ✅ |
-| **Automation** | Task scheduler | ✅ Basic cron | ✅ cron/interval/one-shot | ✅ cron/interval/once/weekly | ✅ |
-| **Channel** | Multi-channel support | ✅ 22+ channels | ✅ 5 channels (via skills) | ✅ 7 (Telegram, MCP, Webhook, Slack, Discord, Voice, Web) | ✅ |
-| **Channel** | Channel abstraction | ✅ Static registry | ✅ Self-registration | ✅ C++ Channel interface | ✅ |
-| **Prompt** | System prompt | ✅ Dynamic generation | ✅ Per-group `CLAUDE.md` | ✅ External file + dynamic | ✅ |
-| **Agent** | Agent-to-Agent | ✅ `sessions_send` | ✅ Agent Swarms | ✅ Per-session prompt + send_to_session | ✅ |
-| **Agent** | Loop detection | ✅ 18K LOC detector | ✅ Timeout + idle | ✅ Repeat + idle + configurable | ✅ |
-| **Agent** | tool_call_id mapping | ✅ Accurate tracking | ✅ SDK native | ✅ Per-backend parsing | ✅ |
-| **Infra** | DB engine | ✅ SQLite + sqlite-vec | ✅ SQLite | ✅ SQLite (RAG embeddings) | ✅ |
-| **Infra** | Structured logging | ✅ Pino (JSON) | ✅ Pino (JSON) | ✅ Markdown audit tables | ✅ |
-| **Infra** | Skill hot-reload | ✅ Runtime install | ✅ apply/rebase | ✅ inotify auto-reload | ✅ |
-| **UX** | Browser control | ✅ CDP Chrome | ❌ | ❌ | 🟡 |
-| **UX** | Voice interface | ✅ Wake word + TTS | ❌ | ✅ Tizen STT/TTS C-API | ✅ |
-| **UX** | Web UI | ✅ Control UI + WebChat | ❌ | ✅ Admin Dashboard + Chat | ✅ |
-| **Ops** | Config management | ✅ UI-based config | ❌ | ✅ Web config editor + backup | ✅ |
+| Category | Feature | OpenClaw | NanoClaw | ZeroClaw | TizenClaw | Gap |
+|----------|---------|:--------:|:--------:|:--------:|:---------:|:---:|
+| **IPC** | Multi-client concurrency | ✅ Parallel sessions | ✅ Group queue | ✅ Async Tokio | ✅ Thread pool | ✅ |
+| **IPC** | Streaming responses | ✅ SSE / WebSocket | ✅ `onOutput` callback | ✅ Block streaming | ✅ Chunked IPC | ✅ |
+| **IPC** | Robust message framing | ✅ WebSocket + JSON-RPC | ✅ Sentinel markers | ✅ JSON-RPC 2.0 | ✅ Length-prefix + JSON-RPC | ✅ |
+| **Memory** | Conversation persistence | ✅ SQLite + Vector DB | ✅ SQLite | ✅ SQLite + FTS5 | ✅ Markdown (YAML frontmatter) | ✅ |
+| **Memory** | Context compaction | ✅ LLM auto-summarize | ❌ | ✅ Snapshot/hydrate | ✅ LLM auto-summarize | ✅ |
+| **Memory** | Semantic search (RAG) | ✅ MMR + embeddings | ❌ | ✅ Hybrid BM25+vector | ✅ SQLite + cosine similarity | ✅ |
+| **LLM** | Model fallback | ✅ Auto-switch (18K LOC) | ❌ | ✅ Provider trait | ✅ Auto-switch + backoff | ✅ |
+| **LLM** | Token counting | ✅ Per-model accurate | ❌ | ✅ Provider-level | ✅ Per-model parsing | ✅ |
+| **LLM** | Usage tracking | ✅ Per-model token usage | ❌ | ❌ | ✅ Daily/monthly Markdown | ✅ |
+| **Security** | Tool execution policy | ✅ Whitelist/blacklist | ❌ | ✅ Autonomy levels | ✅ Risk-level + loop detect | ✅ |
+| **Security** | Sender allowlist | ✅ `allowlist-match.ts` | ✅ `sender-allowlist.ts` | ✅ Deny-by-default | ✅ UID + chat_id | ✅ |
+| **Security** | API key management | ✅ Rotation + encrypted | ✅ stdin delivery | ✅ Encrypted at rest | ✅ Device-bound encryption | ✅ |
+| **Security** | Audit logging | ✅ 45K LOC `audit.ts` | ✅ `ipc-auth.test.ts` | ✅ Observer trait | ✅ Markdown audit + dlog | ✅ |
+| **Security** | Admin authentication | ✅ OAuth / token | ❌ | ✅ Pairing code | ✅ Session-token + SHA-256 | ✅ |
+| **Automation** | Task scheduler | ✅ Basic cron | ✅ cron/interval/one-shot | ✅ Cron + HEARTBEAT.md | ✅ cron/interval/once/weekly | ✅ |
+| **Channel** | Multi-channel support | ✅ 22+ channels | ✅ 5 channels (via skills) | ✅ 17 channels | ✅ 7 (Telegram, MCP, Webhook, Slack, Discord, Voice, Web) | ✅ |
+| **Channel** | Channel abstraction | ✅ Static registry | ✅ Self-registration | ✅ Channel trait | ✅ C++ Channel interface | ✅ |
+| **Prompt** | System prompt | ✅ Dynamic generation | ✅ Per-group `CLAUDE.md` | ✅ Identity config | ✅ External file + dynamic | ✅ |
+| **Agent** | Agent-to-Agent | ✅ `sessions_send` | ✅ Agent Swarms | ❌ | ✅ Per-session prompt + send_to_session | ✅ |
+| **Agent** | Loop detection | ✅ 18K LOC detector | ✅ Timeout + idle | ❌ | ✅ Repeat + idle + configurable | ✅ |
+| **Agent** | tool_call_id mapping | ✅ Accurate tracking | ✅ SDK native | ✅ Provider trait | ✅ Per-backend parsing | ✅ |
+| **Infra** | DB engine | ✅ SQLite + sqlite-vec | ✅ SQLite | ✅ SQLite + PostgreSQL | ✅ SQLite (RAG embeddings) | ✅ |
+| **Infra** | Structured logging | ✅ Pino (JSON) | ✅ Pino (JSON) | ✅ Observer trait | ✅ Markdown audit tables | ✅ |
+| **Infra** | Skill hot-reload | ✅ Runtime install | ✅ apply/rebase | ✅ TOML manifests | ✅ inotify auto-reload | ✅ |
+| **Infra** | Tunnel support | ✅ Tailscale Serve/Funnel | ❌ | ✅ Cloudflare/Tailscale/ngrok | ❌ | 🟡 |
+| **Infra** | Health metrics | ✅ Health checks | ❌ | ✅ Observer trait | ✅ `/api/metrics` + dashboard | ✅ |
+| **Infra** | OTA updates | ❌ | ❌ | ❌ | ✅ OTA skill updater + rollback | ✅ |
+| **UX** | Browser control | ✅ CDP Chrome | ❌ | ✅ Agent browser | ❌ | 🟡 |
+| **UX** | Voice interface | ✅ Wake word + TTS | ❌ | ❌ | ✅ Tizen STT/TTS C-API | ✅ |
+| **UX** | Web UI | ✅ Control UI + WebChat | ❌ | ❌ | ✅ Admin Dashboard + Chat | ✅ |
+| **Ops** | Config management | ✅ UI-based config | ❌ | ✅ TOML + hot-reload | ✅ Web config editor + backup | ✅ |
 
 ---
 
@@ -690,7 +693,7 @@ timeline
 
 ---
 
-## Phase 18: Production Readiness (Proposed)
+## Phase 18: Production Readiness (In Progress)
 
 > **Goal**: Enterprise-grade reliability, monitoring, and deployment
 
@@ -733,6 +736,100 @@ timeline
 
 ---
 
+## Phase 19: Edge Optimization & Tunneling (Proposed)
+
+> **Goal**: Optimize for constrained devices and enable secure remote access
+> **Ref**: ZeroClaw — <5MB RAM, Rust binary · OpenClaw — Tailscale Serve/Funnel
+
+### 19.1 Secure Tunnel Integration
+| Item | Details |
+|------|---------|
+| **Gap** | Dashboard (port 9090) only accessible on local network |
+| **Ref** | OpenClaw: Tailscale Serve/Funnel · ZeroClaw: Cloudflare/Tailscale/ngrok |
+| **Plan** | Configurable reverse tunnel for secure remote dashboard access |
+
+**Done When:**
+- [ ] Tunnel abstraction layer (Tailscale / ngrok / custom)
+- [ ] Auto-configuration via `tunnel_config.json`
+- [ ] Dashboard accessible over HTTPS via tunnel
+
+---
+
+### 19.2 Memory Footprint Optimization
+| Item | Details |
+|------|---------|
+| **Gap** | Daemon RSS not profiled or optimized for constrained devices |
+| **Ref** | ZeroClaw: <5MB peak RSS on release builds |
+| **Plan** | Profile RSS, reduce allocations, lazy-init heavy subsystems |
+
+**Done When:**
+- [ ] RSS profiling baseline documented
+- [ ] Lazy initialization for unused channels/backends
+- [ ] Idle RSS reduced by ≥30%
+
+---
+
+### 19.3 Binary Size Optimization
+| Item | Details |
+|------|---------|
+| **Gap** | No LTO or dead-code stripping in build |
+| **Ref** | ZeroClaw: ~8.8MB single binary |
+| **Plan** | Enable LTO, strip symbols, remove unused code paths |
+
+**Done When:**
+- [ ] LTO enabled in release CMake profile
+- [ ] Binary size reduced by ≥20%
+- [ ] Symbols stripped in RPM package
+
+---
+
+## Phase 20: Skill Registry & Marketplace (Proposed)
+
+> **Goal**: Community skill ecosystem with discovery and versioning
+> **Ref**: OpenClaw — ClawHub skill registry · NanoClaw — Claude Code skills
+
+### 20.1 Skill Manifest Standard
+| Item | Details |
+|------|---------|
+| **Gap** | Skills lack version, dependency, and compatibility metadata |
+| **Ref** | ZeroClaw: TOML manifests · NanoClaw: SKILL.md |
+| **Plan** | Extended `manifest.json` with version, min daemon version, deps |
+
+**Done When:**
+- [ ] Manifest v2 schema with `version`, `min_daemon_version`, `dependencies`
+- [ ] Compatibility check on skill load
+- [ ] Backward-compatible with existing manifests
+
+---
+
+### 20.2 Remote Skill Repository
+| Item | Details |
+|------|---------|
+| **Gap** | Skills can only be installed manually |
+| **Ref** | OpenClaw: ClawHub registry · ZeroClaw: Community skill packs |
+| **Plan** | HTTP-based skill catalog, search, and one-click install via dashboard |
+
+**Done When:**
+- [ ] REST API for skill catalog browsing
+- [ ] Dashboard UI for skill discovery and install
+- [ ] Integrity verification (SHA-256 checksums)
+
+---
+
+### 20.3 Skill Sandboxing Enhancements
+| Item | Details |
+|------|---------|
+| **Gap** | All skills share the same container security profile |
+| **Ref** | ZeroClaw: Docker sandboxed runtime · NanoClaw: Container isolation |
+| **Plan** | Per-skill seccomp profiles and resource quotas |
+
+**Done When:**
+- [ ] Per-skill seccomp profile override in manifest
+- [ ] CPU/memory resource quotas per skill execution
+- [ ] Network access control (allow/deny per skill)
+
+---
+
 ## Phase Dependency & Size Estimation
 
 ```mermaid
@@ -749,6 +846,8 @@ graph TD
     P15 --> P16[Phase 16: Operational Excellence]
     P16 --> P17[Phase 17: Multi-Agent]
     P16 --> P18[Phase 18: Production Readiness]
+    P18 --> P19[Phase 19: Edge Optimization]
+    P18 --> P20[Phase 20: Skill Registry]
 
     style P8 fill:#4ecdc4,color:#fff
     style P9 fill:#4ecdc4,color:#fff
@@ -761,6 +860,8 @@ graph TD
     style P16 fill:#4ecdc4,color:#fff
     style P17 fill:#4ecdc4,color:#fff
     style P18 fill:#ffd93d,color:#fff
+    style P19 fill:#ff6b6b,color:#fff
+    style P20 fill:#ff6b6b,color:#fff
 ```
 
 | Phase | Core Goal | Est. LOC | Priority | Dependencies |
@@ -775,7 +876,9 @@ graph TD
 | **15** | Advanced platform features | ~2,000 | ✅ Done | Phase 13, 14 ✅ |
 | **16** | Operational excellence | ~800 | ✅ Done | Phase 15 ✅ |
 | **17** | Multi-Agent orchestration | ~3,950 | ✅ Done | Phase 16 ✅ |
-| **18** | Production readiness | ~1,500 | 🔴 High | Phase 17 ✅ |
+| **18** | Production readiness | ~1,500 | 🟡 In Progress | Phase 17 ✅ |
+| **19** | Edge optimization & tunneling | ~1,000 | 🔴 High | Phase 18 |
+| **20** | Skill registry & marketplace | ~1,200 | 🟠 Medium | Phase 18 |
 
-> **Current codebase**: ~21,350 LOC across ~82 files
-> **Projected with Phase 18**: ~22,850 LOC
+> **Current codebase**: ~23,100 LOC across ~89 files
+> **Projected with Phase 19–20**: ~25,300 LOC

@@ -9,11 +9,69 @@
   Control your Tizen device through natural language — powered by multi-provider LLMs, containerized skill execution, and a web-based admin dashboard.
 </p>
 
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License"></a>
+  <img src="https://img.shields.io/badge/Language-C%2B%2B17-orange.svg" alt="Language">
+  <img src="https://img.shields.io/badge/Platform-Tizen_10.0%2B-brightgreen.svg" alt="Platform">
+  <img src="https://img.shields.io/badge/LLM_Backends-5-purple.svg" alt="LLM Backends">
+  <img src="https://img.shields.io/badge/Channels-7-blue.svg" alt="Channels">
+</p>
+
 ---
 
 ## Overview
 
 TizenClaw is a native C++ system daemon that brings LLM-based AI agent capabilities to [Tizen](https://www.tizen.org/) devices. It receives natural language commands via multiple communication channels, interprets them through configurable LLM backends, and executes device-level actions using sandboxed Python skills running inside OCI containers.
+
+---
+
+## Why TizenClaw?
+
+TizenClaw is part of the **Claw** family of AI agent runtimes, each targeting different environments:
+
+| | **TizenClaw** | **OpenClaw** | **NanoClaw** | **ZeroClaw** |
+|---|:---:|:---:|:---:|:---:|
+| **Language** | C++17 | TypeScript | TypeScript | Rust |
+| **Target** | Tizen embedded | Cloud / Desktop | Container hosts | Edge hardware |
+| **Binary** | ~15MB RPM | Node.js runtime | Node.js runtime | ~8.8MB single binary |
+| **Channels** | 7 | 22+ | 5 | 17 |
+| **LLM Backends** | 5 | 4+ | 1 (Claude) | 5+ |
+| **Sandboxing** | OCI (crun) | Docker | Docker | Docker |
+| **Unique** | Tizen C-API, MCP | Canvas/A2UI, ClawHub | SKILL.md, AI-native | <5MB RAM, traits |
+
+**What makes TizenClaw different:**
+
+- 🚀 **Native C++ Performance** — Lower memory/CPU vs TypeScript/Node.js runtimes, optimal for embedded devices
+- 🔒 **OCI Container Isolation** — crun-based seccomp + namespace, finer syscall control than app-level sandboxing
+- 📱 **Direct Tizen C-API** — ctypes wrappers for device hardware (battery, Wi-Fi, BT, haptic, alarm)
+- 🤖 **5 LLM Backends** — Gemini, OpenAI, Anthropic, xAI (Grok), Ollama with automatic fallback
+- 📦 **Lightweight Deployment** — systemd + RPM, standalone device execution without Node.js/Docker
+- 🔧 **Native MCP Server** — C++ MCP server integrated into daemon, Claude Desktop controls Tizen via sdb
+- 📊 **Health Monitoring** — Built-in Prometheus-style metrics endpoint + live dashboard panel
+- 🔄 **OTA Updates** — Over-the-air skill updates with version checking and rollback
+
+---
+
+## Quick Start
+
+```bash
+# Build
+gbs build -A x86_64 --include-all
+
+# Deploy to device
+sdb root on && sdb shell mount -o remount,rw /
+sdb push ~/GBS-ROOT/local/repos/tizen/x86_64/RPMS/tizenclaw-*.rpm /tmp/
+sdb shell rpm -Uvh --force /tmp/tizenclaw-*.rpm
+
+# Start daemon
+sdb shell systemctl daemon-reload
+sdb shell systemctl restart tizenclaw
+
+# Access dashboard
+open http://<device-ip>:9090
+```
+
+---
 
 ### Key Features
 
@@ -25,8 +83,10 @@ TizenClaw is a native C++ system daemon that brings LLM-based AI agent capabilit
 - **Task Scheduler** — Cron/interval/one-shot/weekly scheduled tasks with LLM integration and retry logic.
 - **Security** — Encrypted API keys, tool execution policies with risk levels, structured audit logging, HMAC-SHA256 webhook auth.
 - **Web Admin Dashboard** — Dark glassmorphism SPA on port 9090 with session monitoring, chat interface, config editor, and admin authentication.
-- **Multi-Agent** — Concurrent agent sessions with per-session system prompts and inter-session message passing.
+- **Multi-Agent** — Supervisor agent pattern, skill pipelines, A2A protocol for cross-device agent collaboration.
 - **Session Persistence** — Conversation history stored as Markdown with YAML frontmatter, surviving daemon restarts.
+- **Health Monitoring** — Prometheus-style `/api/metrics` endpoint with live dashboard health panel (CPU, memory, uptime, request counts).
+- **OTA Updates** — Over-the-air skill updates via HTTP pull, version checking against remote manifest, and automatic rollback on failure.
 
 ---
 
@@ -251,7 +311,13 @@ tizenclaw/
 │       ├── infra/                 # Infrastructure
 │       │   ├── http_client.cc     #   libcurl HTTP wrapper
 │       │   ├── key_store.cc       #   Encrypted API keys
-│       │   └── container_engine.cc#   OCI container (crun)
+│       │   ├── container_engine.cc#   OCI container (crun)
+│       │   ├── health_monitor.cc  #   Prometheus-style metrics
+│       │   └── ota_updater.cc     #   OTA skill updates
+│       ├── orchestrator/          # Multi-agent orchestration
+│       │   ├── supervisor_engine.cc # Supervisor agent pattern
+│       │   ├── pipeline_executor.cc # Skill pipeline engine
+│       │   └── a2a_handler.cc     #   A2A protocol
 │       └── scheduler/             # Task automation
 │           └── task_scheduler.cc  #   Cron/interval tasks
 ├── skills/                        # Python skill scripts

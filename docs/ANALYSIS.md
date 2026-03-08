@@ -1,6 +1,6 @@
 # TizenClaw Project Analysis
 
-> **Last Updated**: 2026-03-07
+> **Last Updated**: 2026-03-08
 
 ---
 
@@ -8,7 +8,7 @@
 
 **TizenClaw** is a **Native C++ AI Agent system daemon** running on the Tizen Embedded Linux platform.
 
-It interprets natural language prompts through multiple LLM backends (Gemini, OpenAI, Claude, xAI, Ollama), executes Python skills inside OCI containers (crun), and controls the device. It autonomously performs complex tasks through a Function Calling-based iterative loop (Agentic Loop). The system supports 7 communication channels, encrypted credential storage, structured audit logging, scheduled task automation, semantic search (RAG), a web-based admin dashboard, and multi-agent coordination.
+It interprets natural language prompts through multiple LLM backends (Gemini, OpenAI, Claude, xAI, Ollama), executes Python skills inside OCI containers (crun), and controls the device. It autonomously performs complex tasks through a Function Calling-based iterative loop (Agentic Loop). The system supports 7 communication channels, encrypted credential storage, structured audit logging, scheduled task automation, semantic search (RAG), a web-based admin dashboard, multi-agent orchestration (supervisor pattern, skill pipelines, A2A protocol), health monitoring, and OTA updates.
 
 ```mermaid
 graph LR
@@ -244,37 +244,41 @@ Built-in tools (implemented in AgentCore directly):
 | 14 | New Channels | Slack, Discord, Webhook, Agent-to-Agent messaging | ✅ |
 | 15 | Advanced Features | RAG (SQLite embeddings), Web Dashboard, Voice (TTS/STT) | ✅ |
 | 16 | Operational Excellence | Admin authentication, config editor, branding | ✅ |
+| 17 | Multi-Agent Orchestration | Supervisor agent, skill pipelines, A2A protocol | ✅ |
+| 18 | Production Readiness | Health metrics, OTA updates (18.3 CDP pending) | 🟡 |
 
 ---
 
-## 5. Competitive Analysis: Gap Analysis vs OpenClaw & NanoClaw
+## 5. Competitive Analysis: Gap Analysis vs OpenClaw, NanoClaw & ZeroClaw
 
-> **Analysis Date**: 2026-03-07 (Post Phase 16)
-> **Targets**: OpenClaw, NanoClaw
+> **Analysis Date**: 2026-03-08 (Post Phase 18)
+> **Targets**: OpenClaw, NanoClaw, ZeroClaw
 
 ### 5.1 Project Scale Comparison
 
-| Item | **TizenClaw** | **OpenClaw** | **NanoClaw** |
-|------|:---:|:---:|:---:|
-| Language | C++ / Python | TypeScript | TypeScript |
-| Source files | ~75 | ~700+ | ~50 |
-| Skills | 10 + 10 built-in | 52 | 5+ (skills-engine) |
-| LLM Backends | 5 | 15+ | Claude SDK |
-| Channels | 7 | 22+ | 5 |
-| Test coverage | 15+ cases | Hundreds | Dozens |
-| Plugin system | Channel interface | ✅ (npm-based) | ❌ |
+| Item | **TizenClaw** | **OpenClaw** | **NanoClaw** | **ZeroClaw** |
+|------|:---:|:---:|:---:|:---:|
+| Language | C++ / Python | TypeScript | TypeScript | Rust |
+| Source files | ~89 | ~700+ | ~50 | ~100+ |
+| Skills | 10 + 10 built-in | 52 | 5+ (skills-engine) | TOML-based |
+| LLM Backends | 5 | 15+ | Claude SDK | 5+ (trait-driven) |
+| Channels | 7 | 22+ | 5 | 17 |
+| Test coverage | 205+ cases | Hundreds | Dozens | Comprehensive |
+| Plugin system | Channel interface | ✅ (npm-based) | ❌ | ✅ (trait-based) |
+| Peak RAM | ~30MB est. | ~100MB+ | ~80MB+ | <5MB |
 
 ### 5.2 Remaining Gaps
 
-Most gaps identified in the original analysis have been resolved through Phases 6-16. Remaining gaps:
+Most gaps identified in the original analysis have been resolved through Phases 6-18. Remaining gaps:
 
-| Area | OpenClaw | TizenClaw Status | Priority |
+| Area | Reference Project | TizenClaw Status | Priority |
 |------|---------|-----------------|:--------:|
-| **RAG scalability** | sqlite-vec + ANN index | Brute-force cosine similarity | 🟡 Medium |
-| **Browser control** | CDP Chrome automation | ❌ Not implemented | 🟡 Medium |
-| **Channel count** | 22+ channels | 7 channels | 🟢 Low |
-| **Skill marketplace** | ClawHub remote install | Manual copy/inotify | 🟢 Low |
-| **Multi-agent patterns** | sessions_send | Session-based + Agent-to-Agent (basic) | 🟡 Medium |
+| **RAG scalability** | OpenClaw: sqlite-vec + ANN | Brute-force cosine similarity | 🟡 Medium |
+| **Browser control** | OpenClaw: CDP Chrome | ❌ Not implemented (Phase 18.3) | 🟡 Medium |
+| **Tunnel support** | OpenClaw/ZeroClaw: Tailscale/ngrok | ❌ Not implemented (Phase 19.1) | 🔴 High |
+| **Resource optimization** | ZeroClaw: <5MB RAM | Not profiled/optimized (Phase 19.2-3) | 🔴 High |
+| **Skill registry** | OpenClaw: ClawHub | Manual copy/inotify (Phase 20) | 🟢 Low |
+| **Channel count** | OpenClaw: 22+ / ZeroClaw: 17 | 7 channels | 🟢 Low |
 
 ---
 
@@ -291,6 +295,9 @@ Most gaps identified in the original analysis have been resolved through Phases 
 | **RAG Integration** | SQLite-backed semantic search with multi-provider embeddings |
 | **Web Admin Dashboard** | In-daemon glassmorphism SPA with config editing and admin auth |
 | **Voice Control** | Native Tizen STT/TTS integration (conditional compilation) |
+| **Multi-Agent Orchestration** | Supervisor pattern, skill pipelines, A2A cross-device protocol |
+| **Health Monitoring** | Prometheus-style `/api/metrics` + live dashboard panel |
+| **OTA Updates** | Over-the-air skill updates with version checking and rollback |
 
 ---
 
@@ -304,8 +311,8 @@ Most gaps identified in the original analysis have been resolved through Phases 
 | Skill output parsing | Raw stdout JSON | JSON schema validation |
 | Error recovery | In-flight request loss on crash | Request journaling |
 | Log aggregation | Local Markdown files | Remote syslog forwarding |
-| Skill pipeline | LLM-reactive only | Deterministic sequential execution |
-| Multi-agent | Session-based messaging | Supervisor/Router patterns |
+| Resource profiling | No RSS/binary size tracking | Lazy-init, LTO, strip (Phase 19) |
+| Skill versioning | No version metadata | Manifest v2 standard (Phase 20) |
 
 ---
 
@@ -313,10 +320,11 @@ Most gaps identified in the original analysis have been resolved through Phases 
 
 | Category | Files | LOC |
 |----------|-------|-----|
-| C++ Source (`src/tizenclaw/*.cc`) | 27 | ~11,500 |
-| C++ Headers (`src/tizenclaw/*.hh`) | 22 | ~2,250 |
+| C++ Source (`src/tizenclaw/*.cc`) | 35 | ~14,500 |
+| C++ Headers (`src/tizenclaw/*.hh`) | 30 | ~3,200 |
 | C++ Common (`src/common/`) | 5 | ~40 |
 | Python Skills & Utils | 12 | ~1,300 |
-| Shell Scripts | 7 | ~800 |
-| Web Frontend (HTML/CSS/JS) | 3 | ~1,500 |
-| **Total** | ~76 | ~17,400 |
+| Shell Scripts | 9 | ~950 |
+| Web Frontend (HTML/CSS/JS) | 3 | ~2,100 |
+| Unit Tests | 9 | ~1,010 |
+| **Total** | ~103 | ~23,100 |

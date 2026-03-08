@@ -1,44 +1,47 @@
 # TizenClaw 개발 로드맵 v4.0
 
-> **작성일**: 2026-03-07
+> **작성일**: 2026-03-08
 > **기반 문서**: [프로젝트 분석](ANALYSIS.md) | [설계 문서](DESIGN.md)
 
 ---
 
 ## 기능 비교 매트릭스
 
-> **OpenClaw** (TypeScript, ~700+ 파일) 및 **NanoClaw** (TypeScript, ~50 파일)과의 경쟁 분석
+> **OpenClaw** (TypeScript, ~700+ 파일), **NanoClaw** (TypeScript, ~50 파일), **ZeroClaw** (Rust, 단일 바이너리)과의 경쟁 분석
 
-| 카테고리 | 기능 | OpenClaw | NanoClaw | TizenClaw | 갭 |
-|----------|------|:--------:|:--------:|:---------:|:--:|
-| **IPC** | 다중 클라이언트 동시 처리 | ✅ 병렬 세션 | ✅ 그룹 큐 | ✅ 스레드 풀 | ✅ |
-| **IPC** | 스트리밍 응답 | ✅ SSE / WebSocket | ✅ `onOutput` 콜백 | ✅ 청크 IPC | ✅ |
-| **IPC** | 견고한 메시지 프레이밍 | ✅ WebSocket + JSON-RPC | ✅ 센티널 마커 | ✅ 길이-프리픽스 + JSON-RPC | ✅ |
-| **메모리** | 대화 영구 저장 | ✅ SQLite + Vector DB | ✅ SQLite | ✅ Markdown (YAML frontmatter) | ✅ |
-| **메모리** | 컨텍스트 압축 | ✅ LLM 자동 요약 | ❌ | ✅ LLM 자동 요약 | ✅ |
-| **메모리** | 시맨틱 검색 (RAG) | ✅ MMR + 임베딩 | ❌ | ✅ SQLite + 코사인 유사도 | ✅ |
-| **LLM** | 모델 폴백 | ✅ 자동 전환 (18K LOC) | ❌ | ✅ 자동 전환 + 백오프 | ✅ |
-| **LLM** | 토큰 카운팅 | ✅ 모델별 정확 계산 | ❌ | ✅ 모델별 파싱 | ✅ |
-| **LLM** | 사용량 추적 | ✅ 모델별 토큰 사용량 | ❌ | ✅ 일별/월별 Markdown | ✅ |
-| **보안** | 도구 실행 정책 | ✅ 화이트/블랙리스트 | ❌ | ✅ 위험등급 + 루프 감지 | ✅ |
-| **보안** | 발신자 허용목록 | ✅ `allowlist-match.ts` | ✅ `sender-allowlist.ts` | ✅ UID + chat_id | ✅ |
-| **보안** | API 키 관리 | ✅ 로테이션 + 암호화 | ✅ stdin 전달 | ✅ 디바이스 바인딩 암호화 | ✅ |
-| **보안** | 감사 로깅 | ✅ 45K LOC `audit.ts` | ✅ `ipc-auth.test.ts` | ✅ Markdown 감사 + dlog | ✅ |
-| **보안** | 관리자 인증 | ✅ OAuth / 토큰 | ❌ | ✅ 세션 토큰 + SHA-256 | ✅ |
-| **자동화** | 태스크 스케줄러 | ✅ 기본 cron | ✅ cron/interval/일회성 | ✅ cron/interval/once/weekly | ✅ |
-| **채널** | 멀티 채널 지원 | ✅ 22개 이상 | ✅ 5개 (스킬 기반) | ✅ 7개 (Telegram, MCP, Webhook, Slack, Discord, Voice, Web) | ✅ |
-| **채널** | 채널 추상화 | ✅ 정적 레지스트리 | ✅ 자기 등록 | ✅ C++ Channel 인터페이스 | ✅ |
-| **프롬프트** | 시스템 프롬프트 | ✅ 동적 생성 | ✅ 그룹별 `CLAUDE.md` | ✅ 외부 파일 + 동적 생성 | ✅ |
-| **에이전트** | 에이전트 간 통신 | ✅ `sessions_send` | ✅ Agent Swarms | ✅ 세션별 프롬프트 + send_to_session | ✅ |
-| **에이전트** | 루프 감지 | ✅ 18K LOC 감지기 | ✅ 타임아웃 + idle | ✅ 반복 + idle + 설정 가능 | ✅ |
-| **에이전트** | tool_call_id 매핑 | ✅ 정확 추적 | ✅ SDK 네이티브 | ✅ 백엔드별 파싱 | ✅ |
-| **인프라** | DB 엔진 | ✅ SQLite + sqlite-vec | ✅ SQLite | ✅ SQLite (RAG 임베딩) | ✅ |
-| **인프라** | 구조화 로깅 | ✅ Pino (JSON) | ✅ Pino (JSON) | ✅ Markdown 감사 테이블 | ✅ |
-| **인프라** | 스킬 핫리로드 | ✅ 런타임 설치 | ✅ apply/rebase | ✅ inotify 자동 리로드 | ✅ |
-| **UX** | 브라우저 제어 | ✅ CDP Chrome | ❌ | ❌ | 🟡 |
-| **UX** | 음성 인터페이스 | ✅ 웨이크 워드 + TTS | ❌ | ✅ Tizen STT/TTS C-API | ✅ |
-| **UX** | 웹 UI | ✅ 제어 UI + 웹챗 | ❌ | ✅ 관리 대시보드 + 채팅 | ✅ |
-| **운영** | 설정 관리 | ✅ UI 기반 설정 | ❌ | ✅ 웹 설정 편집기 + 백업 | ✅ |
+| 카테고리 | 기능 | OpenClaw | NanoClaw | ZeroClaw | TizenClaw | 갭 |
+|----------|------|:--------:|:--------:|:--------:|:---------:|:--:|
+| **IPC** | 다중 클라이언트 동시 처리 | ✅ 병렬 세션 | ✅ 그룹 큐 | ✅ Async Tokio | ✅ 스레드 풀 | ✅ |
+| **IPC** | 스트리밍 응답 | ✅ SSE / WebSocket | ✅ `onOutput` 콜백 | ✅ Block 스트리밍 | ✅ 청크 IPC | ✅ |
+| **IPC** | 견고한 메시지 프레이밍 | ✅ WebSocket + JSON-RPC | ✅ 센티널 마커 | ✅ JSON-RPC 2.0 | ✅ 길이-프리픽스 + JSON-RPC | ✅ |
+| **메모리** | 대화 영구 저장 | ✅ SQLite + Vector DB | ✅ SQLite | ✅ SQLite + FTS5 | ✅ Markdown (YAML frontmatter) | ✅ |
+| **메모리** | 컨텍스트 압축 | ✅ LLM 자동 요약 | ❌ | ✅ Snapshot/hydrate | ✅ LLM 자동 요약 | ✅ |
+| **메모리** | 시맨틱 검색 (RAG) | ✅ MMR + 임베딩 | ❌ | ✅ 하이브리드 BM25+벡터 | ✅ SQLite + 코사인 유사도 | ✅ |
+| **LLM** | 모델 폴백 | ✅ 자동 전환 (18K LOC) | ❌ | ✅ Provider trait | ✅ 자동 전환 + 백오프 | ✅ |
+| **LLM** | 토큰 카운팅 | ✅ 모델별 정확 계산 | ❌ | ✅ Provider 수준 | ✅ 모델별 파싱 | ✅ |
+| **LLM** | 사용량 추적 | ✅ 모델별 토큰 사용량 | ❌ | ❌ | ✅ 일별/월별 Markdown | ✅ |
+| **보안** | 도구 실행 정책 | ✅ 화이트/블랙리스트 | ❌ | ✅ 자율성 레벨 | ✅ 위험등급 + 루프 감지 | ✅ |
+| **보안** | 발신자 허용목록 | ✅ `allowlist-match.ts` | ✅ `sender-allowlist.ts` | ✅ 기본 거부 | ✅ UID + chat_id | ✅ |
+| **보안** | API 키 관리 | ✅ 로테이션 + 암호화 | ✅ stdin 전달 | ✅ 암호화 저장 | ✅ 디바이스 바인딩 암호화 | ✅ |
+| **보안** | 감사 로깅 | ✅ 45K LOC `audit.ts` | ✅ `ipc-auth.test.ts` | ✅ Observer trait | ✅ Markdown 감사 + dlog | ✅ |
+| **보안** | 관리자 인증 | ✅ OAuth / 토큰 | ❌ | ✅ 페어링 코드 | ✅ 세션 토큰 + SHA-256 | ✅ |
+| **자동화** | 태스크 스케줄러 | ✅ 기본 cron | ✅ cron/interval/일회성 | ✅ Cron + HEARTBEAT.md | ✅ cron/interval/once/weekly | ✅ |
+| **채널** | 멀티 채널 지원 | ✅ 22개 이상 | ✅ 5개 (스킬 기반) | ✅ 17개 채널 | ✅ 7개 (Telegram, MCP, Webhook, Slack, Discord, Voice, Web) | ✅ |
+| **채널** | 채널 추상화 | ✅ 정적 레지스트리 | ✅ 자기 등록 | ✅ Channel trait | ✅ C++ Channel 인터페이스 | ✅ |
+| **프롬프트** | 시스템 프롬프트 | ✅ 동적 생성 | ✅ 그룹별 `CLAUDE.md` | ✅ Identity config | ✅ 외부 파일 + 동적 생성 | ✅ |
+| **에이전트** | 에이전트 간 통신 | ✅ `sessions_send` | ✅ Agent Swarms | ❌ | ✅ 세션별 프롬프트 + send_to_session | ✅ |
+| **에이전트** | 루프 감지 | ✅ 18K LOC 감지기 | ✅ 타임아웃 + idle | ❌ | ✅ 반복 + idle + 설정 가능 | ✅ |
+| **에이전트** | tool_call_id 매핑 | ✅ 정확 추적 | ✅ SDK 네이티브 | ✅ Provider trait | ✅ 백엔드별 파싱 | ✅ |
+| **인프라** | DB 엔진 | ✅ SQLite + sqlite-vec | ✅ SQLite | ✅ SQLite + PostgreSQL | ✅ SQLite (RAG 임베딩) | ✅ |
+| **인프라** | 구조화 로깅 | ✅ Pino (JSON) | ✅ Pino (JSON) | ✅ Observer trait | ✅ Markdown 감사 테이블 | ✅ |
+| **인프라** | 스킬 핫리로드 | ✅ 런타임 설치 | ✅ apply/rebase | ✅ TOML 매니페스트 | ✅ inotify 자동 리로드 | ✅ |
+| **인프라** | 터널 지원 | ✅ Tailscale Serve/Funnel | ❌ | ✅ Cloudflare/Tailscale/ngrok | ❌ | 🟡 |
+| **인프라** | 헬스 메트릭스 | ✅ Health checks | ❌ | ✅ Observer trait | ✅ `/api/metrics` + 대시보드 | ✅ |
+| **인프라** | OTA 업데이트 | ❌ | ❌ | ❌ | ✅ OTA 스킬 업데이터 + 롤백 | ✅ |
+| **UX** | 브라우저 제어 | ✅ CDP Chrome | ❌ | ✅ Agent 브라우저 | ❌ | 🟡 |
+| **UX** | 음성 인터페이스 | ✅ 웨이크 워드 + TTS | ❌ | ❌ | ✅ Tizen STT/TTS C-API | ✅ |
+| **UX** | 웹 UI | ✅ 제어 UI + 웹챗 | ❌ | ❌ | ✅ 관리 대시보드 + 채팅 | ✅ |
+| **운영** | 설정 관리 | ✅ UI 기반 설정 | ❌ | ✅ TOML + 핫리로드 | ✅ 웹 설정 편집기 + 백업 | ✅ |
 
 ---
 
@@ -690,7 +693,7 @@ timeline
 
 ---
 
-## Phase 18: 프로덕션 준비 (제안)
+## Phase 18: 프로덕션 준비 (진행 중)
 
 > **목표**: 엔터프라이즈급 안정성, 모니터링, 배포
 
@@ -701,8 +704,8 @@ timeline
 | **계획** | CPU, 메모리, 업타임, 요청 수를 위한 Prometheus 스타일 메트릭 엔드포인트 |
 
 **완료 기준:**
-- [ ] 주요 시스템 메트릭이 있는 `/api/metrics` 엔드포인트
-- [ ] 실시간 통계가 있는 대시보드 헬스 패널
+- [x] 주요 시스템 메트릭이 있는 `/api/metrics` 엔드포인트
+- [x] 실시간 통계가 있는 대시보드 헬스 패널
 
 ---
 
@@ -713,9 +716,9 @@ timeline
 | **계획** | HTTP pull을 통한 무선 데몬 및 스킬 업데이트 |
 
 **완료 기준:**
-- [ ] 원격 매니페스트 대비 버전 확인
-- [ ] 설정된 저장소에서 스킬 자동 업데이트
-- [ ] 업데이트 실패 시 롤백 메커니즘
+- [x] 원격 매니페스트 대비 버전 확인
+- [x] 설정된 저장소에서 스킬 자동 업데이트
+- [x] 업데이트 실패 시 롤백 메커니즘
 
 ---
 
@@ -730,6 +733,100 @@ timeline
 - [ ] 내장 Chromium/WebView에 CDP 연결
 - [ ] 내장 도구: `navigate_url`, `click_element`, `extract_text`
 - [ ] 시각적 피드백을 위한 스크린샷 캡처
+
+---
+
+## Phase 19: 엣지 최적화 & 터널링 (제안)
+
+> **목표**: 제한된 디바이스 최적화 및 안전한 원격 접근 지원
+> **참고**: ZeroClaw — <5MB RAM, Rust 바이너리 · OpenClaw — Tailscale Serve/Funnel
+
+### 19.1 보안 터널 통합
+| 항목 | 내용 |
+|------|------|
+| **갭** | 대시보드 (포트 9090)가 로컬 네트워크에서만 접근 가능 |
+| **참고** | OpenClaw: Tailscale Serve/Funnel · ZeroClaw: Cloudflare/Tailscale/ngrok |
+| **계획** | 안전한 원격 대시보드 접근을 위한 설정 가능한 리버스 터널 |
+
+**완료 기준:**
+- [ ] 터널 추상화 레이어 (Tailscale / ngrok / 커스텀)
+- [ ] `tunnel_config.json`을 통한 자동 구성
+- [ ] 터널을 통한 HTTPS 대시보드 접근
+
+---
+
+### 19.2 메모리 사용량 최적화
+| 항목 | 내용 |
+|------|------|
+| **갭** | 데몬 RSS가 프로파일링되거나 최적화되지 않음 |
+| **참고** | ZeroClaw: 릴리스 빌드에서 <5MB 피크 RSS |
+| **계획** | RSS 프로파일링, 할당 감소, 무거운 서브시스템 지연 초기화 |
+
+**완료 기준:**
+- [ ] RSS 프로파일링 기준선 문서화
+- [ ] 미사용 채널/백엔드의 지연 초기화
+- [ ] 유휴 RSS ≥30% 감소
+
+---
+
+### 19.3 바이너리 크기 최적화
+| 항목 | 내용 |
+|------|------|
+| **갭** | 빌드에서 LTO나 데드 코드 제거 미적용 |
+| **참고** | ZeroClaw: ~8.8MB 단일 바이너리 |
+| **계획** | LTO 활성화, 심벌 스트립, 미사용 코드 경로 제거 |
+
+**완료 기준:**
+- [ ] 릴리스 CMake 프로파일에서 LTO 활성화
+- [ ] 바이너리 크기 ≥20% 감소
+- [ ] RPM 패키지에서 심벌 스트립
+
+---
+
+## Phase 20: 스킬 레지스트리 & 마켓플레이스 (제안)
+
+> **목표**: 검색 및 버전 관리가 가능한 커뮤니티 스킬 생태계
+> **참고**: OpenClaw — ClawHub 스킬 레지스트리 · NanoClaw — Claude Code 스킬
+
+### 20.1 스킬 매니페스트 표준
+| 항목 | 내용 |
+|------|------|
+| **갭** | 스킬에 버전, 의존성, 호환성 메타데이터 부재 |
+| **참고** | ZeroClaw: TOML 매니페스트 · NanoClaw: SKILL.md |
+| **계획** | 버전, 최소 데몬 버전, 의존성이 포함된 확장 `manifest.json` |
+
+**완료 기준:**
+- [ ] `version`, `min_daemon_version`, `dependencies`가 포함된 매니페스트 v2 스키마
+- [ ] 스킬 로드 시 호환성 검사
+- [ ] 기존 매니페스트와 하위 호환
+
+---
+
+### 20.2 원격 스킬 저장소
+| 항목 | 내용 |
+|------|------|
+| **갭** | 스킬은 수동으로만 설치 가능 |
+| **참고** | OpenClaw: ClawHub 레지스트리 · ZeroClaw: 커뮤니티 스킬 팩 |
+| **계획** | HTTP 기반 스킬 카탈로그, 검색, 대시보드를 통한 원클릭 설치 |
+
+**완료 기준:**
+- [ ] 스킬 카탈로그 탐색을 위한 REST API
+- [ ] 스킬 검색 및 설치를 위한 대시보드 UI
+- [ ] 무결성 검증 (SHA-256 체크섬)
+
+---
+
+### 20.3 스킬 샌드박싱 강화
+| 항목 | 내용 |
+|------|------|
+| **갭** | 모든 스킬이 동일한 컨테이너 보안 프로파일 공유 |
+| **참고** | ZeroClaw: Docker 샌드박스 런타임 · NanoClaw: 컨테이너 격리 |
+| **계획** | 스킬별 seccomp 프로파일 및 리소스 쿼터 |
+
+**완료 기준:**
+- [ ] 매니페스트에서 스킬별 seccomp 프로파일 오버라이드
+- [ ] 스킬 실행별 CPU/메모리 리소스 쿼터
+- [ ] 네트워크 접근 제어 (스킬별 허용/차단)
 
 ---
 
@@ -749,6 +846,8 @@ graph TD
     P15 --> P16[Phase 16: 운영 우수성]
     P16 --> P17[Phase 17: 멀티 에이전트]
     P16 --> P18[Phase 18: 프로덕션 준비]
+    P18 --> P19[Phase 19: 엣지 최적화]
+    P18 --> P20[Phase 20: 스킬 레지스트리]
 
     style P8 fill:#4ecdc4,color:#fff
     style P9 fill:#4ecdc4,color:#fff
@@ -761,6 +860,8 @@ graph TD
     style P16 fill:#4ecdc4,color:#fff
     style P17 fill:#4ecdc4,color:#fff
     style P18 fill:#ffd93d,color:#fff
+    style P19 fill:#ff6b6b,color:#fff
+    style P20 fill:#ff6b6b,color:#fff
 ```
 
 | Phase | 핵심 목표 | 예상 LOC | 우선순위 | 의존성 |
@@ -775,7 +876,9 @@ graph TD
 | **15** | 고급 플랫폼 기능 | ~2,000 | ✅ 완료 | Phase 13, 14 ✅ |
 | **16** | 운영 우수성 | ~800 | ✅ 완료 | Phase 15 ✅ |
 | **17** | 멀티 에이전트 오케스트레이션 | ~3,950 | ✅ 완료 | Phase 16 ✅ |
-| **18** | 프로덕션 준비 | ~1,500 | 🔴 높음 | Phase 17 ✅ |
+| **18** | 프로덕션 준비 | ~1,500 | 🟡 진행 중 | Phase 17 ✅ |
+| **19** | 엣지 최적화 & 터널링 | ~1,000 | 🔴 높음 | Phase 18 |
+| **20** | 스킬 레지스트리 & 마켓플레이스 | ~1,200 | 🟠 보통 | Phase 18 |
 
-> **현재 코드베이스**: ~82개 파일, ~21,350 LOC
-> **Phase 18 완료 시 예상**: ~22,850 LOC
+> **현재 코드베이스**: ~89개 파일, ~23,100 LOC
+> **Phase 19–20 완료 시 예상**: ~25,300 LOC
