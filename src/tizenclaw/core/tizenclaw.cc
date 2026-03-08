@@ -6,6 +6,7 @@
 #include <string>
 #include <csignal>
 #include <exception>
+#include <ranges>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <sys/un.h>
@@ -292,19 +293,11 @@ void TizenClawDaemon::IpcServerLoop() {
         {
             std::lock_guard<std::mutex> lock(threads_mutex_);
             // Clean up finished threads
-            client_threads_.erase(
-                std::remove_if(client_threads_.begin(),
-                               client_threads_.end(),
-                               [](std::thread& t) {
-                                   if (t.joinable()) {
-                                        // Can't check if done;
-                                        // no try_join in C++17.
-                                        // Use detach approach.
-                                        return false;
-                                   }
-                                   return true;
-                               }),
-                client_threads_.end());
+            std::erase_if(
+                client_threads_,
+                [](std::thread& t) {
+                    return !t.joinable();
+                });
 
             client_threads_.emplace_back([this, client_sock]() {
                 active_clients_.fetch_add(1);
@@ -564,10 +557,11 @@ void TizenClawDaemon::HandleIpcClient(int client_sock) {
 
 bool TizenClawDaemon::IsAllowedUid(
     uid_t uid) const {
-  for (auto allowed : kAllowedUids) {
-    if (uid == allowed) return true;
-  }
-  return false;
+  return std::ranges::any_of(
+      kAllowedUids,
+      [uid](uid_t allowed) {
+        return uid == allowed;
+      });
 }
 
 constexpr uid_t TizenClawDaemon::kAllowedUids[];

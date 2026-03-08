@@ -5,6 +5,8 @@
 #include <json.hpp>
 #include <thread>
 #include <atomic>
+#include <algorithm>
+#include <span>
 #include <vector>
 #include <mutex>
 #include "agent_core.hh"
@@ -36,7 +38,8 @@ private:
     void OnDestroy();
     void IpcServerLoop();
     void HandleIpcClient(int client_sock);
-    bool IsAllowedUid(uid_t uid) const;
+    [[nodiscard]] bool IsAllowedUid(
+        uid_t uid) const;
 
     int argc_;
     char** argv_;

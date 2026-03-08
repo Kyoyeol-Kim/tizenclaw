@@ -14,19 +14,21 @@ public:
     virtual ~Channel() = default;
 
     // Human-readable channel name (e.g. "telegram")
-    virtual std::string GetName() const = 0;
+    [[nodiscard]] virtual std::string GetName()
+        const = 0;
 
     // Initialize and start the channel.
     // Returns false if startup fails (e.g. missing
     // config). Non-fatal: daemon continues without
     // this channel.
-    virtual bool Start() = 0;
+    [[nodiscard]] virtual bool Start() = 0;
 
     // Signal the channel to stop and clean up.
     virtual void Stop() = 0;
 
     // Whether the channel is currently active.
-    virtual bool IsRunning() const = 0;
+    [[nodiscard]] virtual bool IsRunning()
+        const = 0;
 };
 
 } // namespace tizenclaw

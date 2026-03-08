@@ -2,7 +2,7 @@
 #include <fstream>
 #include <iostream>
 #include <chrono>
-#include <dirent.h>
+#include <filesystem>
 #include <sstream>
 #include <sys/stat.h>
 #include <thread>
@@ -17,7 +17,8 @@ namespace tizenclaw {
 
 
 AgentCore::AgentCore()
-    : container_(new ContainerEngine()),
+    : container_(
+          std::make_unique<ContainerEngine>()),
       initialized_(false) {
 }
 
@@ -264,7 +265,7 @@ std::string AgentCore::ProcessPrompt(
   {
     std::lock_guard<std::mutex> lock(session_mutex_);
     // Load from disk if not in memory
-    if (sessions_.find(session_id) == sessions_.end()) {
+    if (!sessions_.contains(session_id)) {
       auto loaded = session_store_.LoadSession(session_id);
       if (!loaded.empty()) {
         sessions_[session_id] = std::move(loaded);
@@ -656,19 +657,24 @@ AgentCore::LoadSkillDeclarations() {
   std::lock_guard<std::mutex> lock(
       tools_mutex_);
 
+  namespace fs = std::filesystem;
+
   std::vector<LlmToolDecl> tools;
   const std::string skills_dir =
       "/opt/usr/share/tizenclaw/skills";
 
-  DIR* dir = opendir(skills_dir.c_str());
-  if (!dir) return tools;
+  std::error_code ec;
+  if (!fs::is_directory(skills_dir, ec))
+    return tools;
 
-  struct dirent* ent;
-  while ((ent = readdir(dir)) != nullptr) {
-    if (ent->d_name[0] == '.') continue;
+  for (const auto& entry :
+       fs::directory_iterator(skills_dir, ec)) {
+    if (!entry.is_directory()) continue;
+    auto dirname =
+        entry.path().filename().string();
+    if (dirname[0] == '.') continue;
     std::string manifest_path =
-        skills_dir + "/" + ent->d_name +
-        "/manifest.json";
+        entry.path() / "manifest.json";
     std::ifstream mf(manifest_path);
     if (!mf.is_open()) continue;
 
@@ -678,7 +684,7 @@ AgentCore::LoadSkillDeclarations() {
       if (j.contains("parameters")) {
         LlmToolDecl t;
         t.name =
-            j.value("name", ent->d_name);
+            j.value("name", dirname);
         t.description =
             j.value("description", "");
         t.parameters = j["parameters"];
@@ -688,10 +694,11 @@ AgentCore::LoadSkillDeclarations() {
             t.name, j);
       }
     } catch (...) {
-      LOG(WARNING) << "Failed to parse manifest: " << manifest_path;
+      LOG(WARNING) << "Failed to parse "
+                   << "manifest: "
+                   << manifest_path;
     }
   }
-  closedir(dir);
 
   // Built-in tool: execute_code
   LlmToolDecl code_tool;
@@ -1371,8 +1378,7 @@ void AgentCore::CompactHistory(
   session_mutex_.lock();
 
   // Verify session still exists after re-lock
-  if (sessions_.find(session_id) ==
-      sessions_.end()) {
+  if (!sessions_.contains(session_id)) {
     return;
   }
   auto& hist = sessions_[session_id];
@@ -1707,7 +1713,7 @@ std::string AgentCore::ExecuteSessionOp(
                     ? "..."
                     : "")},
             {"history_size",
-             sessions_.count(sid)
+             sessions_.contains(sid)
                  ? (int)sessions_[sid].size()
                  : 0}
         };
@@ -1717,7 +1723,7 @@ std::string AgentCore::ExecuteSessionOp(
       // Also list sessions without custom
       // prompts (default sessions)
       for (auto& [sid, hist] : sessions_) {
-        if (session_prompts_.count(sid) == 0) {
+        if (!session_prompts_.contains(sid)) {
           nlohmann::json s = {
               {"session_id", sid},
               {"system_prompt", "(default)"},

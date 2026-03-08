@@ -30,13 +30,17 @@ public:
 
     // Look up a channel by name (nullptr if not
     // found).
-    Channel* Get(const std::string& name) const;
+    [[nodiscard]] Channel* Get(
+        const std::string& name) const;
 
     // List names of all registered channels.
-    std::vector<std::string> ListChannels() const;
+    [[nodiscard]] std::vector<std::string>
+    ListChannels() const;
 
     // Number of registered channels.
-    size_t Size() const { return channels_.size(); }
+    [[nodiscard]] size_t Size() const {
+      return channels_.size();
+    }
 
 private:
     std::vector<std::unique_ptr<Channel>> channels_;

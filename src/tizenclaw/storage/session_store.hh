@@ -59,13 +59,14 @@ public:
     void SetDirectory(const std::string& dir);
 
     // Save session history to disk (Markdown format)
-    bool SaveSession(
+    [[nodiscard]] bool SaveSession(
         const std::string& session_id,
         const std::vector<LlmMessage>& history);
 
     // Load session history from disk (Markdown or
     // legacy JSON with auto-migration)
-    std::vector<LlmMessage> LoadSession(
+    [[nodiscard]] std::vector<LlmMessage>
+    LoadSession(
         const std::string& session_id);
 
     // Delete a session file
@@ -88,15 +89,18 @@ public:
         int completion_tokens);
 
     // Load token usage for a session
-    TokenUsageSummary LoadTokenUsage(
+    [[nodiscard]] TokenUsageSummary
+    LoadTokenUsage(
         const std::string& session_id);
 
     // Load daily aggregate usage
-    DailyUsageSummary LoadDailyUsage(
+    [[nodiscard]] DailyUsageSummary
+    LoadDailyUsage(
         const std::string& date) const;
 
     // Load monthly aggregate usage
-    DailyUsageSummary LoadMonthlyUsage(
+    [[nodiscard]] DailyUsageSummary
+    LoadMonthlyUsage(
         const std::string& month) const;
 
     // Remove orphaned tool messages that have no

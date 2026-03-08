@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License"></a>
-  <img src="https://img.shields.io/badge/Language-C%2B%2B17-orange.svg" alt="Language">
+  <img src="https://img.shields.io/badge/Language-C%2B%2B20-orange.svg" alt="Language">
   <img src="https://img.shields.io/badge/Platform-Tizen_10.0%2B-brightgreen.svg" alt="Platform">
   <img src="https://img.shields.io/badge/LLM_Backends-5-purple.svg" alt="LLM Backends">
   <img src="https://img.shields.io/badge/Channels-7-blue.svg" alt="Channels">
@@ -31,7 +31,7 @@ TizenClaw is part of the **Claw** family of AI agent runtimes, each targeting di
 
 | | **TizenClaw** | **OpenClaw** | **NanoClaw** | **ZeroClaw** |
 |---|:---:|:---:|:---:|:---:|
-| **Language** | C++17 | TypeScript | TypeScript | Rust |
+| **Language** | C++20 | TypeScript | TypeScript | Rust |
 | **Target** | Tizen embedded | Cloud / Desktop | Container hosts | Edge hardware |
 | **Binary** | ~15MB RPM | Node.js runtime | Node.js runtime | ~8.8MB single binary |
 | **Channels** | 7 | 22+ | 5 | 17 |
@@ -334,9 +334,9 @@ tizenclaw/
 
 ## Documentation
 
-- [System Design](docs/DESIGN.md) / [설계 문서](docs/DESIGN_KOR.md)
-- [Project Analysis](docs/ANALYSIS.md) / [프로젝트 분석](docs/ANALYSIS_KOR.md)
-- [Development Roadmap](docs/ROADMAP.md) / [개발 로드맵](docs/ROADMAP_KOR.md)
+- [System Design](docs/DESIGN.md)
+- [Project Analysis](docs/ANALYSIS.md)
+- [Development Roadmap](docs/ROADMAP.md)
 
 ---
 

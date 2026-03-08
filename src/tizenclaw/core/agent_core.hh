@@ -4,6 +4,7 @@
 #include <atomic>
 #include <map>
 #include <string>
+#include <unordered_map>
 #include <vector>
 #include <memory>
 #include <future>
@@ -28,11 +29,11 @@ public:
     AgentCore();
     ~AgentCore();
 
-    bool Initialize();
+    [[nodiscard]] bool Initialize();
     void Shutdown();
 
     // Process a prompt, returns response text
-    std::string ProcessPrompt(
+    [[nodiscard]] std::string ProcessPrompt(
         const std::string& session_id,
         const std::string& prompt,
         std::function<void(const std::string&)> on_chunk = nullptr);
@@ -43,7 +44,7 @@ public:
 
     // Direct skill execution for MCP (bypasses LLM,
     // but still uses container isolation)
-    std::string ExecuteSkillForMcp(
+    [[nodiscard]] std::string ExecuteSkillForMcp(
         const std::string& skill_name,
         const nlohmann::json& args);
 
@@ -85,13 +86,14 @@ public:
 
     // Get tools filtered by allowed list
     // (empty list = all tools)
-    std::vector<LlmToolDecl> GetToolsFiltered(
+    [[nodiscard]] std::vector<LlmToolDecl>
+    GetToolsFiltered(
         const std::vector<std::string>& allowed);
 
     // Execute pipeline operations
     // (create_pipeline, list_pipelines,
     //  run_pipeline, delete_pipeline)
-    std::string ExecutePipelineOp(
+    [[nodiscard]] std::string ExecutePipelineOp(
         const std::string& operation,
         const nlohmann::json& args,
         const std::string& session_id);

@@ -1,6 +1,9 @@
 #include "channel_registry.hh"
 #include "../../common/logging.hh"
 
+#include <algorithm>
+#include <ranges>
+
 namespace tizenclaw {
 
 ChannelRegistry::~ChannelRegistry() {
@@ -31,34 +34,38 @@ void ChannelRegistry::StartAll() {
 
 void ChannelRegistry::StopAll() {
   // Stop in reverse registration order
-  for (auto it = channels_.rbegin();
-       it != channels_.rend(); ++it) {
-    if ((*it)->IsRunning()) {
+  for (auto& ch : channels_
+           | std::views::reverse) {
+    if (ch->IsRunning()) {
       LOG(INFO) << "Stopping channel: "
-                << (*it)->GetName();
-      (*it)->Stop();
+                << ch->GetName();
+      ch->Stop();
     }
   }
 }
 
 Channel* ChannelRegistry::Get(
     const std::string& name) const {
-  for (auto& ch : channels_) {
-    if (ch->GetName() == name) {
-      return ch.get();
-    }
-  }
-  return nullptr;
+  auto it = std::ranges::find_if(
+      channels_,
+      [&name](const auto& ch) {
+        return ch->GetName() == name;
+      });
+  return it != channels_.end()
+      ? it->get() : nullptr;
 }
 
 std::vector<std::string>
 ChannelRegistry::ListChannels() const {
   std::vector<std::string> names;
   names.reserve(channels_.size());
-  for (auto& ch : channels_) {
-    names.push_back(ch->GetName());
-  }
+  std::ranges::transform(
+      channels_, std::back_inserter(names),
+      [](const auto& ch) {
+        return ch->GetName();
+      });
   return names;
 }
 
 } // namespace tizenclaw
+

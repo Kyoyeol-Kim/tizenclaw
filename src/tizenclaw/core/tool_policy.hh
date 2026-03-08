@@ -40,7 +40,8 @@ public:
 
   // Load policy config from JSON file
   // Returns true if loaded (or defaults used)
-  bool LoadConfig(const std::string& config_path);
+  [[nodiscard]] bool LoadConfig(
+      const std::string& config_path);
 
   // Load risk_level from skill manifest
   void LoadManifestRiskLevel(
@@ -50,19 +51,19 @@ public:
   // Check if a tool call is allowed.
   // Returns empty string if allowed,
   // violation reason string if blocked.
-  std::string CheckPolicy(
+  [[nodiscard]] std::string CheckPolicy(
       const std::string& session_id,
       const std::string& skill_name,
       const nlohmann::json& args);
 
   // Track iteration outputs for idle detection.
   // Returns true if idle (no progress).
-  bool CheckIdleProgress(
+  [[nodiscard]] bool CheckIdleProgress(
       const std::string& session_id,
       const std::string& iteration_output);
 
   // Get max iterations for agentic loop
-  int GetMaxIterations() const;
+  [[nodiscard]] int GetMaxIterations() const;
 
   // Reset per-session call tracking
   void ResetSession(
@@ -73,7 +74,7 @@ public:
       const std::string& session_id);
 
   // Get risk level for a skill
-  RiskLevel GetRiskLevel(
+  [[nodiscard]] RiskLevel GetRiskLevel(
       const std::string& skill_name) const;
 
   // Convert RiskLevel to string

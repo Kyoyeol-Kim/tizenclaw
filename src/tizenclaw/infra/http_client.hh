@@ -18,7 +18,7 @@ struct HttpResponse {
 class HttpClient {
 public:
   // POST JSON with retry + exponential backoff.
-  static HttpResponse Post(
+  [[nodiscard]] static HttpResponse Post(
       const std::string& url,
       const std::map<std::string, std::string>&
           headers,
@@ -29,7 +29,7 @@ public:
       std::function<void(const std::string&)> stream_cb = nullptr);
 
   // GET with retry + timeouts (for long polling)
-  static HttpResponse Get(
+  [[nodiscard]] static HttpResponse Get(
       const std::string& url,
       const std::map<std::string, std::string>&
           headers = {},

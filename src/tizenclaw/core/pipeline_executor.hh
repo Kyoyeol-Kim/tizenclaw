@@ -71,18 +71,20 @@ class PipelineExecutor {
   void LoadPipelines();
 
   // CRUD operations
-  std::string CreatePipeline(
+  [[nodiscard]] std::string CreatePipeline(
       const nlohmann::json& def);
-  nlohmann::json ListPipelines() const;
-  bool DeletePipeline(const std::string& id);
+  [[nodiscard]] nlohmann::json ListPipelines()
+      const;
+  [[nodiscard]] bool DeletePipeline(
+      const std::string& id);
 
   // Execute pipeline
-  PipelineRunResult RunPipeline(
+  [[nodiscard]] PipelineRunResult RunPipeline(
       const std::string& pipeline_id,
       const nlohmann::json& input_vars = {});
 
   // Get pipeline by ID (for scheduler)
-  const Pipeline* GetPipeline(
+  [[nodiscard]] const Pipeline* GetPipeline(
       const std::string& id) const;
 
  private:

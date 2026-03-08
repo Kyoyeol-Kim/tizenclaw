@@ -7,6 +7,7 @@ description: TizenClaw Coding Rules and Guidelines
 본 저장소에서 TizenClaw를 구현할 때, Agent(AI)는 항상 다음 코딩 스타일과 규칙을 최우선으로 준수해야 합니다.
 
 ## 1. C++ 코딩 스타일
+- **C++ 표준**: **C++20** (`-std=c++20`)을 사용합니다.
 - **스타일 가이드**: [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html)를 엄격하게 따릅니다.
 - **최대 글꼴 줄바꿈 (Line Wrap)**: 소스코드, 주석, 헤더 파일의 모든 텍스트는 **80자를 넘지 않도록 (Column limit: 80)** 적절하게 줄바꿈합니다. 
 - **들여쓰기(Indentation)**: 2칸(Space 2)을 사용합니다 (탭 사용 금지).
@@ -15,6 +16,12 @@ description: TizenClaw Coding Rules and Guidelines
   - 변수명: snake_case (예: `app_data`, `cmd_line`)
   - 멤버 변수: `m_` 접두사 또는 뒤에 `_` 접미사 통일 적용 (예: `m_initialized` 또는 `initialized_`)
   - 함수명: PascalCase 또는 Tizen C API 스타일 래핑 시 snake_case 허용.
+- **C++20 필수 규칙**:
+  - `[[nodiscard]]`: bool/상태 반환 함수에 적용
+  - `std::filesystem`: POSIX `opendir/readdir/stat` 대신 사용
+  - `map::contains()`: `find() != end()` 대신 사용
+  - `std::ranges`: 범위 기반 알고리즘 우선 사용
+  - `using enum`: 스코프 내 enum 반복 사용 시 적용
 
 ## 2. CMake 및 빌드 지원
 - Tizen GBS (Gerrit Build System) 환경을 타겟으로 작성하며, CMake를 통해 `gbs build`가 항상 성공해야 합니다.

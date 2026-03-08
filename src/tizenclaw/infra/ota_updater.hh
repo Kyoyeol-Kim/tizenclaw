@@ -29,36 +29,37 @@ class OtaUpdater {
   ~OtaUpdater() = default;
 
   // Load OTA config from JSON file
-  bool LoadConfig(
+  [[nodiscard]] bool LoadConfig(
       const std::string& config_path);
 
   // Check remote manifest for updates
   // Returns list of available updates
-  std::string CheckForUpdates();
+  [[nodiscard]] std::string CheckForUpdates();
 
   // Update a specific skill by name
-  std::string UpdateSkill(
+  [[nodiscard]] std::string UpdateSkill(
       const std::string& skill_name);
 
   // Rollback a skill to its backup
-  std::string RollbackSkill(
+  [[nodiscard]] std::string RollbackSkill(
       const std::string& skill_name);
 
   // Get manifest URL
-  std::string GetManifestUrl() const {
+  [[nodiscard]] std::string GetManifestUrl()
+      const {
     return manifest_url_;
   }
 
   // Parse a manifest JSON string
   // (public for testing)
-  std::vector<SkillUpdateInfo>
+  [[nodiscard]] std::vector<SkillUpdateInfo>
   ParseManifest(
       const std::string& manifest_json,
       const std::string& skills_dir) const;
 
   // Compare version strings (a < b)
   // Supports semver: "1.2.3" < "1.3.0"
-  static bool IsNewerVersion(
+  [[nodiscard]] static bool IsNewerVersion(
       const std::string& local,
       const std::string& remote);
 

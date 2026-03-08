@@ -45,7 +45,7 @@ struct LlmResponse {
   // HTTP status for fallback decisions
   int http_status = 0;
 
-  bool HasToolCalls() const {
+  [[nodiscard]] bool HasToolCalls() const {
     return !tool_calls.empty();
   }
 };
@@ -66,18 +66,19 @@ public:
   virtual ~LlmBackend() = default;
 
   // Initialize with provider-specific config
-  virtual bool Initialize(
+  [[nodiscard]] virtual bool Initialize(
       const nlohmann::json& config) = 0;
 
   // Send a chat request. Returns unified response.
-  virtual LlmResponse Chat(
+  [[nodiscard]] virtual LlmResponse Chat(
       const std::vector<LlmMessage>& messages,
       const std::vector<LlmToolDecl>& tools,
       std::function<void(const std::string&)> on_chunk = nullptr,
       const std::string& system_prompt = "") = 0;
 
   // Provider name (e.g. "gemini", "openai")
-  virtual std::string GetName() const = 0;
+  [[nodiscard]] virtual std::string GetName()
+      const = 0;
 
   // Cleanup
   virtual void Shutdown() {}
@@ -91,8 +92,8 @@ class LlmBackendFactory {
 public:
   // Supported names: gemini, openai, anthropic,
   // xai, ollama
-  static std::unique_ptr<LlmBackend> Create(
-      const std::string& name);
+  [[nodiscard]] static std::unique_ptr<LlmBackend>
+  Create(const std::string& name);
 };
 
 } // namespace tizenclaw

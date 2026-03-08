@@ -8,15 +8,16 @@ namespace tizenclaw {
 
 class GeminiBackend : public LlmBackend {
 public:
-  bool Initialize(
+  [[nodiscard]] bool Initialize(
       const nlohmann::json& config) override;
-  LlmResponse Chat(
+  [[nodiscard]] LlmResponse Chat(
       const std::vector<LlmMessage>& messages,
       const std::vector<LlmToolDecl>& tools,
       std::function<void(const std::string&)> on_chunk = nullptr,
       const std::string& system_prompt = "")
       override;
-  std::string GetName() const override {
+  [[nodiscard]] std::string GetName()
+      const override {
     return "gemini";
   }
 

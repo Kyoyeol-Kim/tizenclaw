@@ -22,14 +22,15 @@ namespace tizenclaw {
 namespace utils {
 
 log_priority LogLevelToPriority(LogLevel level) {
+  using enum LogLevel;
   switch (level) {
-    case LogLevel::LOG_ERROR:
+    case LOG_ERROR:
       return log_priority::DLOG_ERROR;
-    case LogLevel::LOG_WARNING:
+    case LOG_WARNING:
       return log_priority::DLOG_WARN;
-    case LogLevel::LOG_INFO:
+    case LOG_INFO:
       return log_priority::DLOG_INFO;
-    case LogLevel::LOG_DEBUG:
+    case LOG_DEBUG:
       return log_priority::DLOG_DEBUG;
     default:
       return log_priority::DLOG_UNKNOWN;

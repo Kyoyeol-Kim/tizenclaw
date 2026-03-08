@@ -40,24 +40,26 @@ class SupervisorEngine {
   explicit SupervisorEngine(AgentCore* agent);
 
   // Load role definitions from JSON config
-  bool LoadRoles(const std::string& config_path);
+  [[nodiscard]] bool LoadRoles(
+      const std::string& config_path);
 
   // Run supervisor loop:
   // decompose → delegate → collect → validate
-  std::string RunSupervisor(
+  [[nodiscard]] std::string RunSupervisor(
       const std::string& goal,
       const std::string& strategy,
       const std::string& session_id);
 
   // List configured roles
-  nlohmann::json ListRoles() const;
+  [[nodiscard]] nlohmann::json ListRoles() const;
 
   // Get role by name (nullptr if not found)
-  const AgentRole* GetRole(
+  [[nodiscard]] const AgentRole* GetRole(
       const std::string& name) const;
 
   // Get all role names
-  std::vector<std::string> GetRoleNames() const;
+  [[nodiscard]] std::vector<std::string>
+  GetRoleNames() const;
 
  private:
   // Decompose goal into (role, sub_task) pairs

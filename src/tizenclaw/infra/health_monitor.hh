@@ -21,14 +21,15 @@ class HealthMonitor {
   void IncrementToolCallCount();
 
   // Get all metrics as JSON string
-  std::string GetMetricsJson() const;
+  [[nodiscard]] std::string GetMetricsJson()
+      const;
 
   // Get individual metrics
-  uint64_t GetRequestCount() const;
-  uint64_t GetErrorCount() const;
-  uint64_t GetLlmCallCount() const;
-  uint64_t GetToolCallCount() const;
-  double GetUptimeSeconds() const;
+  [[nodiscard]] uint64_t GetRequestCount() const;
+  [[nodiscard]] uint64_t GetErrorCount() const;
+  [[nodiscard]] uint64_t GetLlmCallCount() const;
+  [[nodiscard]] uint64_t GetToolCallCount() const;
+  [[nodiscard]] double GetUptimeSeconds() const;
 
  private:
   // Parse memory from /proc/self/status

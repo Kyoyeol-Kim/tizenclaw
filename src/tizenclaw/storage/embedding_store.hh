@@ -20,11 +20,12 @@ public:
   ~EmbeddingStore();
 
   // Open (or create) the SQLite database
-  bool Initialize(const std::string& db_path);
+  [[nodiscard]] bool Initialize(
+      const std::string& db_path);
   void Close();
 
   // Store a document chunk with its embedding
-  bool StoreChunk(
+  [[nodiscard]] bool StoreChunk(
       const std::string& source,
       const std::string& chunk_text,
       const std::vector<float>& embedding);
@@ -37,27 +38,29 @@ public:
     std::string chunk_text;
     float score;
   };
-  std::vector<SearchResult> Search(
+  [[nodiscard]] std::vector<SearchResult> Search(
       const std::vector<float>& query_embedding,
       int top_k = 5) const;
 
   // Delete all chunks from a given source
-  bool DeleteSource(const std::string& source);
+  [[nodiscard]] bool DeleteSource(
+      const std::string& source);
 
   // Total number of stored chunks
-  int GetChunkCount() const;
+  [[nodiscard]] int GetChunkCount() const;
 
   // --- Utility (public for testing) ---
 
   // Split text into ~chunk_size character chunks
   // with ~overlap overlap.
-  static std::vector<std::string> ChunkText(
+  [[nodiscard]] static std::vector<std::string>
+  ChunkText(
       const std::string& text,
       size_t chunk_size = 500,
       size_t overlap = 50);
 
   // Cosine similarity between two vectors
-  static float CosineSimilarity(
+  [[nodiscard]] static float CosineSimilarity(
       const std::vector<float>& a,
       const std::vector<float>& b);
 

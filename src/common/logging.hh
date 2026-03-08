@@ -55,7 +55,8 @@ enum class LogLevel {
   LOG_DEBUG,
 };
 
-log_priority LogLevelToPriority(LogLevel level);
+[[nodiscard]] log_priority LogLevelToPriority(
+    LogLevel level);
 
 template <class charT, class traits = std::char_traits<charT>>
 class StringStream : private std::basic_ostringstream<charT, traits> {
@@ -110,7 +111,7 @@ private:
 class LogCore {
 public:
   // Do not call this function at destructor of global object
-  static LogCore& GetCore() {
+  [[nodiscard]] static LogCore& GetCore() {
     static LogCore core;
     return core;
   }
@@ -154,7 +155,8 @@ private:
 
 } // namespace utils
 
-inline static const constexpr char* __tag_for_project() { return PROJECT_TAG; }
+inline static consteval const char*
+__tag_for_project() { return PROJECT_TAG; }
 
 // Simple logging macro of following usage:
 //   LOG(LEVEL) << object_1 << object_2 << object_n;

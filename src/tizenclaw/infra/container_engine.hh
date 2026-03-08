@@ -12,22 +12,22 @@ public:
     ~ContainerEngine();
 
     // Initialize the container backend (crun or runc)
-    bool Initialize();
+    [[nodiscard]] bool Initialize();
 
     // Execute a skill: tries UDS socket first, then
     // crun exec fallback, then host-direct fallback.
-    std::string ExecuteSkill(
+    [[nodiscard]] std::string ExecuteSkill(
         const std::string& skill_name,
         const std::string& arg_str);
 
     // Execute arbitrary Python code via the skill
     // executor's execute_code command.
-    std::string ExecuteCode(
+    [[nodiscard]] std::string ExecuteCode(
         const std::string& code);
 
     // Execute file operations via the skill
     // executor's file_manager command.
-    std::string ExecuteFileOp(
+    [[nodiscard]] std::string ExecuteFileOp(
         const std::string& operation,
         const std::string& path,
         const std::string& content);
