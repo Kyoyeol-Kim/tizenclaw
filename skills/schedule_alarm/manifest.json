@@ -1,25 +1,25 @@
 {
     "name": "schedule_alarm",
-    "version": "1.0",
-    "description": "Uses Tizen CAPI alarm to schedule a task to run after a certain delay matching a cron/scheduler feature.",
+    "version": "2.0",
+    "description": "Schedules an alarm to launch a specific application at a given time using Tizen Alarm API with app_control.",
     "entrypoint": "python3 schedule_alarm.py",
     "risk_level": "high",
     "dependencies": [],
     "parameters": {
         "type": "object",
         "properties": {
-            "delay_sec": {
-                "type": "integer",
-                "description": "Delay in seconds (must be >= 600)"
-            },
-            "prompt_text": {
+            "app_id": {
                 "type": "string",
-                "description": "Prompt to send when alarm fires"
+                "description": "Target application ID to launch when the alarm fires (e.g. org.tizen.setting)"
+            },
+            "datetime": {
+                "type": "string",
+                "description": "Target time in ISO format (YYYY-MM-DDTHH:MM:SS)"
             }
         },
         "required": [
-            "delay_sec",
-            "prompt_text"
+            "app_id",
+            "datetime"
         ]
     }
 }

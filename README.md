@@ -43,7 +43,7 @@ TizenClaw is part of the **Claw** family of AI agent runtimes, each targeting di
 
 - 🚀 **Native C++ Performance** — Lower memory/CPU vs TypeScript/Node.js runtimes, optimal for embedded devices
 - 🔒 **OCI Container Isolation** — crun-based seccomp + namespace, finer syscall control than app-level sandboxing
-- 📱 **Direct Tizen C-API** — ctypes wrappers for device hardware (battery, Wi-Fi, BT, haptic, alarm)
+- 📱 **Direct Tizen C-API** — ctypes wrappers for device hardware (battery, Wi-Fi, BT, alarm, app management)
 - 🤖 **5 LLM Backends** — Gemini, OpenAI, Anthropic, xAI (Grok), Ollama with automatic fallback
 - 📦 **Lightweight Deployment** — systemd + RPM, standalone device execution without Node.js/Docker
 - 🔧 **Native MCP Server** — C++ MCP server integrated into daemon, Claude Desktop controls Tizen via sdb
@@ -134,7 +134,7 @@ graph TB
 
     subgraph Secure["Secure Container (crun)"]
         Skills["Python Skills<br/>(sandboxed)"]
-        SkillList["launch_app · list_apps · terminate_app<br/>get_device_info · vibrate_device<br/>schedule_alarm · web_search · ..."]
+        SkillList["launch_app · list_apps · terminate_app<br/>get_device_info · get_battery_info<br/>schedule_alarm · web_search · ..."]
         Skills --- SkillList
     end
 
@@ -159,8 +159,7 @@ graph TB
 | `get_battery_info` | Read battery level and charging status |
 | `get_wifi_info` | Get Wi-Fi connection details |
 | `get_bluetooth_info` | Query Bluetooth adapter state |
-| `vibrate_device` | Trigger device vibration |
-| `schedule_alarm` | Set a timed alarm/reminder |
+| `schedule_alarm` | Schedule an alarm to launch a specific app at a given time |
 | `web_search` | Search Wikipedia for information |
 
 ### Built-in Tools (AgentCore)

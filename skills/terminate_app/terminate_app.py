@@ -20,9 +20,13 @@ def terminate_app(app_id):
             "libcapi-appfw-app-manager.so.1",
         ])
 
-        # bool app_manager_is_running(const char *app_id)
-        lib.app_manager_is_running.argtypes = [ctypes.c_char_p]
-        lib.app_manager_is_running.restype = ctypes.c_bool
+        # int app_manager_is_running(
+        #     const char *app_id, bool *running)
+        lib.app_manager_is_running.argtypes = [
+            ctypes.c_char_p,
+            ctypes.POINTER(ctypes.c_bool),
+        ]
+        lib.app_manager_is_running.restype = ctypes.c_int
 
         # int app_manager_get_app_context(
         #     const char *app_id, app_context_h *handle)
@@ -45,8 +49,14 @@ def terminate_app(app_id):
         b_app_id = app_id.encode("utf-8")
 
         # Check if app is running
-        is_running = lib.app_manager_is_running(b_app_id)
-        if not is_running:
+        running = ctypes.c_bool(False)
+        ret = lib.app_manager_is_running(
+            b_app_id, ctypes.byref(running)
+        )
+        tizen_capi_utils.check_return(
+            ret, "app_manager_is_running failed"
+        )
+        if not running.value:
             return {
                 "status": "not_running",
                 "app_id": app_id,
