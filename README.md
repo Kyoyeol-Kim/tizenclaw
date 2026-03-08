@@ -139,7 +139,7 @@ graph TB
 
     subgraph Secure["Secure Container (crun)"]
         Skills["Python Skills<br/>(sandboxed)"]
-        SkillList["launch_app · list_apps · terminate_app<br/>get_device_info · get_battery_info · get_wifi_info<br/>get_bluetooth_info · get_display_info · get_system_info<br/>get_runtime_info · get_storage_info · get_network_info<br/>get_sensor_data · get_system_settings · get_package_info<br/>control_display · control_haptic · control_led<br/>control_volume · control_power · play_tone<br/>play_feedback · send_notification · schedule_alarm<br/>web_search"]
+        SkillList["launch_app · list_apps · terminate_app<br/>get_device_info · get_battery_info · get_wifi_info<br/>get_bluetooth_info · get_display_info · get_system_info<br/>get_runtime_info · get_storage_info · get_network_info<br/>get_sensor_data · get_system_settings · get_package_info<br/>get_thermal_info · get_data_usage · get_sound_devices<br/>get_media_content · get_mime_type · scan_wifi_networks<br/>control_display · control_haptic · control_led<br/>control_volume · control_power · play_tone<br/>play_feedback · send_notification · schedule_alarm<br/>web_search"]
         Skills --- SkillList
     end
 
@@ -188,6 +188,12 @@ graph TB
 | `play_feedback` | Play sound/vibration feedback patterns |
 | `send_notification` | Post a notification to the device notification bar |
 | `schedule_alarm` | Schedule an alarm to launch a specific app at a given time |
+| `get_thermal_info` | Read device temperature (AP, CP, battery) |
+| `get_data_usage` | Get WiFi/cellular data usage statistics |
+| `get_sound_devices` | List connected audio devices (speakers, mics, Bluetooth) |
+| `get_media_content` | Search media files stored on device (images, videos, audio) |
+| `get_mime_type` | Look up MIME type from extension or vice versa |
+| `scan_wifi_networks` | Scan nearby WiFi networks (async via tizen-core) |
 | `web_search` | Search the web using Naver or Google |
 
 ### Tizen Action Framework (Native Device Actions)

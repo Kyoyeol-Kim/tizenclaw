@@ -42,7 +42,7 @@ graph LR
 
     subgraph Skills["OCI 컨테이너 (Alpine RootFS)"]
         SkillExec["SkillExecutor (IPC)"]
-        SkillList["list_apps · launch_app · terminate_app<br/>get_device_info · get_battery_info · get_wifi_info<br/>get_bluetooth_info · get_display_info · get_system_info<br/>get_runtime_info · get_storage_info · get_network_info<br/>get_sensor_data · get_system_settings · get_package_info<br/>control_display · control_haptic · control_led<br/>control_volume · control_power · play_tone<br/>play_feedback · send_notification · schedule_alarm<br/>web_search"]
+        SkillList["list_apps · launch_app · terminate_app<br/>get_device_info · get_battery_info · get_wifi_info<br/>get_bluetooth_info · get_display_info · get_system_info<br/>get_runtime_info · get_storage_info · get_network_info<br/>get_sensor_data · get_system_settings · get_package_info<br/>get_thermal_info · get_data_usage · get_sound_devices<br/>get_media_content · get_mime_type · scan_wifi_networks<br/>control_display · control_haptic · control_led<br/>control_volume · control_power · play_tone<br/>play_feedback · send_notification · schedule_alarm<br/>web_search"]
     end
 
     Telegram & Slack & Discord & Voice --> IPC
@@ -101,7 +101,7 @@ tizenclaw/
 │   │   ├── skill_watcher.cc/hh      # inotify 스킬 핫리로드
 │   │   └── embedding_store.cc/hh    # SQLite RAG 벡터 스토어
 │   └── common/                      # 공통 유틸리티 (로깅 등)
-├── skills/                          # Python 스킬 (27개 디렉터리)
+├── skills/                          # Python 스킬 (33개 디렉터리)
 │   ├── common/tizen_capi_utils.py   # ctypes 기반 Tizen C-API 래퍼
 │   ├── skill_executor.py            # 컨테이너 측 IPC 스킬 실행기
 │   ├── list_apps/                   # 설치된 앱 목록 조회
@@ -128,6 +128,12 @@ tizenclaw/
 │   ├── play_feedback/               # 피드백 패턴 재생
 │   ├── send_notification/           # 알림 게시
 │   ├── schedule_alarm/              # 알람 스케줄링
+│   ├── get_thermal_info/            # 디바이스 온도
+│   ├── get_data_usage/              # 네트워크 데이터 사용량
+│   ├── get_sound_devices/           # 오디오 디바이스 목록
+│   ├── get_media_content/           # 미디어 파일 검색
+│   ├── get_mime_type/               # MIME 타입 조회
+│   ├── scan_wifi_networks/          # WiFi 스캔 (비동기, tizen-core)
 │   └── web_search/                  # 웹 검색 (Wikipedia API)
 ├── scripts/                         # 컨테이너 & 인프라 스크립트 (9개)
 │   ├── run_standard_container.sh    # 데몬용 OCI 컨테이너
@@ -242,6 +248,12 @@ tizenclaw/
 | `play_feedback` | `pattern` (string) | `feedback` | ✅ |
 | `send_notification` | `title`, `body` (string) | `notification` | ✅ |
 | `schedule_alarm` | `app_id`, `datetime` (string) | `alarm` | ✅ |
+| `get_thermal_info` | 없음 | `device` (thermal) | ✅ |
+| `get_data_usage` | 없음 | `connection` (통계) | ✅ |
+| `get_sound_devices` | 없음 | `sound_manager` (디바이스) | ✅ |
+| `get_media_content` | `media_type`, `max_count` | `media-content` | ✅ |
+| `get_mime_type` | `file_extension`, `file_path`, `mime_type` | `mime-type` | ✅ |
+| `scan_wifi_networks` | 없음 | `wifi-manager` + `tizen-core` (비동기) | ✅ |
 | `web_search` | `query` (string, required) | 없음 (Wikipedia API) | ✅ |
 
 AgentCore에 직접 구현된 내장 도구:
@@ -305,7 +317,7 @@ AgentCore에 직접 구현된 내장 도구:
 |------|:---:|:---:|:---:|:---:|
 | 언어 | C++ / Python | TypeScript | TypeScript | Rust |
 | 소스 파일 수 | ~89 | ~700+ | ~50 | ~100+ |
-| 스킬 수 | 25 + 10 내장 | 52 | 5+ (skills-engine) | TOML 기반 |
+| 스킬 수 | 31 + 10 내장 | 52 | 5+ (skills-engine) | TOML 기반 |
 | LLM 백엔드 | 5 | 15+ | Claude SDK | 5+ (trait 기반) |
 | 채널 수 | 7 | 22+ | 5 | 17 |
 | 테스트 커버리지 | 205+ 케이스 | 수백 개 | 수십 개 | 포괄적 |

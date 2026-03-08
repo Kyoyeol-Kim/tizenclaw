@@ -1,0 +1,10 @@
+{
+    "name": "get_thermal_info",
+    "risk_level": "low",
+    "description": "Get device thermal (temperature) information. Returns AP (application processor) temperature in Celsius.",
+    "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+    }
+}

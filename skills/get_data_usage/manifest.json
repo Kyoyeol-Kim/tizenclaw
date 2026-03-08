@@ -1,0 +1,10 @@
+{
+    "name": "get_data_usage",
+    "risk_level": "low",
+    "description": "Get network data usage statistics (total bytes sent/received) for WiFi and cellular connections.",
+    "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+    }
+}

@@ -1,0 +1,10 @@
+{
+    "name": "scan_wifi_networks",
+    "risk_level": "low",
+    "description": "Scan for nearby WiFi networks and return a list of found access points with SSID, signal strength (RSSI), security type, and frequency.",
+    "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+    }
+}
