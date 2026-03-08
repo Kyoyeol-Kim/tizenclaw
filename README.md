@@ -160,7 +160,7 @@ graph TB
 | `get_wifi_info` | Get Wi-Fi connection details |
 | `get_bluetooth_info` | Query Bluetooth adapter state |
 | `schedule_alarm` | Schedule an alarm to launch a specific app at a given time |
-| `web_search` | Search Wikipedia for information |
+| `web_search` | Search the web using Naver or Google |
 
 ### Built-in Tools (AgentCore)
 
