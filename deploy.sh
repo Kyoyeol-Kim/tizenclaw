@@ -17,8 +17,8 @@ set -euo pipefail
 # Constants
 # ─────────────────────────────────────────────
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
-GBS_ROOT="${HOME}/GBS-ROOT"
 PKG_NAME="tizenclaw"
+GBS_BUILD_LOG="/tmp/gbs_build_output.log"
 
 # Colors
 RED='\033[0;31m'
@@ -212,10 +212,27 @@ do_build() {
   log "Running: gbs build ${gbs_args[*]}"
   cd "${PROJECT_DIR}"
 
-  if run gbs build "${gbs_args[@]}"; then
+  if [ "${DRY_RUN}" = true ]; then
+    echo -e "  ${YELLOW}[DRY-RUN]${NC} gbs build ${gbs_args[*]}"
+    ok "GBS build succeeded"
+    return 0
+  fi
+
+  # Run gbs build and capture output for RPMS path extraction
+  if gbs build "${gbs_args[@]}" 2>&1 | tee "${GBS_BUILD_LOG}"; then
     ok "GBS build succeeded"
   else
-    fail "GBS build failed. Check logs: ${GBS_ROOT}/local/repos/tizen/${ARCH}/logs/fail/"
+    fail "GBS build failed. Check the build log: ${GBS_BUILD_LOG}"
+  fi
+
+  # Extract RPMS directory from gbs build output
+  RPMS_DIR=$(grep -A1 'generated RPM packages can be found from local repo:' "${GBS_BUILD_LOG}" \
+    | tail -1 | sed 's/^[[:space:]]*//')
+
+  if [ -n "${RPMS_DIR}" ]; then
+    ok "RPMS directory: ${RPMS_DIR}"
+  else
+    warn "Could not parse RPMS path from build output"
   fi
 }
 
@@ -223,25 +240,45 @@ do_build() {
 # Step 2: Find the built RPM
 # ─────────────────────────────────────────────
 RPM_FILE=""
+RPMS_DIR=""
 
 find_rpm() {
   header "Step 2/4: Locating RPM"
 
-  local rpms_dir="${GBS_ROOT}/local/repos/tizen/${ARCH}/RPMS"
+  # If RPMS_DIR was not set by do_build (e.g. --skip-build or --dry-run),
+  # try to find it from the last build log or fall back to searching GBS-ROOT
+  if [ -z "${RPMS_DIR}" ]; then
+    # Try last build log first
+    if [ -f "${GBS_BUILD_LOG}" ]; then
+      RPMS_DIR=$(grep -A1 'generated RPM packages can be found from local repo:' "${GBS_BUILD_LOG}" \
+        | tail -1 | sed 's/^[[:space:]]*//')
+    fi
+
+    # Fall back to searching under ~/GBS-ROOT
+    if [ -z "${RPMS_DIR}" ]; then
+      local gbs_root="${HOME}/GBS-ROOT"
+      RPMS_DIR=$(find "${gbs_root}" -type d -path "*/${ARCH}/RPMS" 2>/dev/null | head -1 || true)
+    fi
+  fi
 
   if [ "${DRY_RUN}" = true ]; then
-    RPM_FILE="${rpms_dir}/${PKG_NAME}-1.0.0-1.${ARCH}.rpm"
+    if [ -z "${RPMS_DIR}" ]; then
+      RPMS_DIR="${HOME}/GBS-ROOT/local/repos/tizen/${ARCH}/RPMS"
+    fi
+    RPM_FILE="${RPMS_DIR}/${PKG_NAME}-1.0.0-1.${ARCH}.rpm"
     log "[DRY-RUN] Assuming RPM: ${RPM_FILE}"
     return 0
   fi
 
-  if [ ! -d "${rpms_dir}" ]; then
-    fail "RPMS directory not found: ${rpms_dir}\n       Have you run a GBS build first?"
+  if [ -z "${RPMS_DIR}" ] || [ ! -d "${RPMS_DIR}" ]; then
+    fail "RPMS directory not found: ${RPMS_DIR:-unknown}\n       Have you run a GBS build first?"
   fi
 
+  log "Searching in: ${RPMS_DIR}"
+
   # Find the main RPM (exclude -unittests, -debuginfo, -debugsource)
-  RPM_FILE=$(find "${rpms_dir}" -maxdepth 1 \
-    -name "${PKG_NAME}-[0-9]*.${ARCH}.rpm" \
+  RPM_FILE=$(find "${RPMS_DIR}" -maxdepth 1 \
+    -name "${PKG_NAME}-[0-9]*.rpm" \
     ! -name "*-unittests-*" \
     ! -name "*-debuginfo-*" \
     ! -name "*-debugsource-*" \
@@ -249,7 +286,7 @@ find_rpm() {
     | sort -rn | head -1 | cut -d' ' -f2-)
 
   if [ -z "${RPM_FILE}" ]; then
-    fail "No ${PKG_NAME} RPM found in ${rpms_dir}/\n       Run a build first or remove --skip-build"
+    fail "No ${PKG_NAME} RPM found in ${RPMS_DIR}/\n       Run a build first or remove --skip-build"
   fi
 
   local rpm_size
