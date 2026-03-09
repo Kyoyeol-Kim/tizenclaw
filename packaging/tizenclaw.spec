@@ -17,7 +17,6 @@ BuildRequires:  pkgconfig(libsoup-2.4)
 BuildRequires:  pkgconfig(libwebsockets)
 BuildRequires:  pkgconfig(sqlite3)
 BuildRequires:  pkgconfig(capi-appfw-tizen-action)
-# C++ toolchain is generally available in Tizen
 
 %description
 TizenClaw Native Agent running as a System Service, utilizing LXC for skills execution.
@@ -39,14 +38,10 @@ export CFLAGS="$CFLAGS -Wall -Wno-shadow -Wno-unused-function"
 export CXXFLAGS="$CXXFLAGS -Wall"
 export LDFLAGS="$LDFLAGS -Wl,--as-needed"
 
-mkdir -p build
-cd build
-cmake .. \
-    -DCMAKE_INSTALL_PREFIX=/usr \
-    -DTIZENCLAW_ARCH=%{_arch}
-make %{?_smp_mflags}
+%cmake . -DTIZENCLAW_ARCH=%{_arch}
+%__make %{?_smp_mflags}
 
-cd ..
+# Build crun from source
 CRUN_VERSION="1.26"
 CRUN_TAR="third_party/crun/src/crun-${CRUN_VERSION}.tar.gz"
 CRUN_STAGE_DIR="crun-stage"
@@ -62,7 +57,6 @@ if [ -f "${CRUN_TAR}" ]; then
 
   # Override CFLAGS for third-party crun build to suppress warnings
   # that become errors under -Werror (shadow, unused-variable, stringop).
-  # These are known issues in crun source that we cannot modify.
   export CFLAGS="${CFLAGS} -Wno-shadow -Wno-unused-variable -Wno-stringop-overread -Wno-stringop-overflow"
 
   if (cd "${CRUN_SRC_DIR}" && \
@@ -87,17 +81,13 @@ else
 fi
 
 %check
-cd build
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:%{buildroot}/usr/lib
 ctest -V
 
 %install
-rm -rf %{buildroot}
-cd build
 %make_install
 
-ARCH="%{_arch}"
-CRUN_SRC="../crun-stage/crun"
+CRUN_SRC="crun-stage/crun"
 if [ ! -x "${CRUN_SRC}" ]; then
   echo "Missing source-built crun binary: ${CRUN_SRC}"
   echo "crun source build must succeed before install."
@@ -108,41 +98,32 @@ install -D -m 0755 "${CRUN_SRC}" \
   %{buildroot}/usr/libexec/tizenclaw/crun
 
 # Tizen structure
-mkdir -p %{buildroot}/usr/bin
-mkdir -p %{buildroot}/usr/lib/systemd/system/
-mkdir -p %{buildroot}/usr/lib/systemd/system/multi-user.target.wants
+mkdir -p %{buildroot}%{_bindir}
+mkdir -p %{buildroot}%{_unitdir}
+mkdir -p %{buildroot}%{_unitdir}/multi-user.target.wants
 mkdir -p %{buildroot}/opt/usr/share/tizenclaw/img
 mkdir -p %{buildroot}/opt/usr/share/tizenclaw/skills
 mkdir -p %{buildroot}/opt/usr/share/tizenclaw/config
 mkdir -p %{buildroot}/opt/usr/share/tizenclaw/tools/embedded
 
-ln -sf ../tizenclaw.service %{buildroot}/usr/lib/systemd/system/multi-user.target.wants/tizenclaw.service
-ln -sf ../tizenclaw-skills-secure.service %{buildroot}/usr/lib/systemd/system/multi-user.target.wants/tizenclaw-skills-secure.service
+ln -sf ../tizenclaw.service %{buildroot}%{_unitdir}/multi-user.target.wants/tizenclaw.service
+ln -sf ../tizenclaw-skills-secure.service %{buildroot}%{_unitdir}/multi-user.target.wants/tizenclaw-skills-secure.service
 
 %files
 %defattr(-,root,root,-)
 %manifest %{name}.manifest
-/usr/bin/tizenclaw
-/usr/bin/tizenclaw-cli
-/usr/bin/start_mcp_tunnel.sh
-/usr/lib/systemd/system/tizenclaw.service
-/usr/lib/systemd/system/tizenclaw-skills-secure.service
-/usr/lib/systemd/system/multi-user.target.wants/tizenclaw.service
-/usr/lib/systemd/system/multi-user.target.wants/tizenclaw-skills-secure.service
+%{_bindir}/tizenclaw
+%{_bindir}/tizenclaw-cli
+%{_bindir}/start_mcp_tunnel.sh
+%{_unitdir}/tizenclaw.service
+%{_unitdir}/tizenclaw-skills-secure.service
+%{_unitdir}/multi-user.target.wants/tizenclaw.service
+%{_unitdir}/multi-user.target.wants/tizenclaw-skills-secure.service
 /usr/libexec/tizenclaw/run_standard_container.sh
 /usr/libexec/tizenclaw/skills_secure_container.sh
 /usr/libexec/tizenclaw/crun
 /opt/usr/share/tizenclaw/img/rootfs.tar.gz
-/opt/usr/share/tizenclaw/config/llm_config.json.sample
-/opt/usr/share/tizenclaw/config/telegram_config.json.sample
-/opt/usr/share/tizenclaw/config/webhook_config.json.sample
-/opt/usr/share/tizenclaw/config/slack_config.json.sample
-/opt/usr/share/tizenclaw/config/discord_config.json.sample
-/opt/usr/share/tizenclaw/config/agent_roles.json.sample
-/opt/usr/share/tizenclaw/config/a2a_config.json.sample
-/opt/usr/share/tizenclaw/config/ota_config.json.sample
-/opt/usr/share/tizenclaw/config/system_prompt.txt
-/opt/usr/share/tizenclaw/config/tool_policy.json
+/opt/usr/share/tizenclaw/config/*
 /opt/usr/share/tizenclaw/skills/
 /opt/usr/share/tizenclaw/web/
 /opt/usr/share/tizenclaw/tools/embedded/
@@ -153,4 +134,4 @@ ln -sf ../tizenclaw-skills-secure.service %{buildroot}/usr/lib/systemd/system/mu
 %files unittests
 %defattr(-,root,root,-)
 %manifest %{name}.manifest
-/usr/bin/tizenclaw-unittests
+%{_bindir}/tizenclaw-unittests

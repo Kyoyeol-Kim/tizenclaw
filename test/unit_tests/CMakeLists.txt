@@ -1,128 +1,75 @@
-cmake_minimum_required(VERSION 3.5)
+## Test sources (auto-collected)
+AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR} UNIT_TEST_SRCS)
 
-# Make sure we build unittests if not a subproject
-if(NOT TARGET ${PACKAGE})
-    project(tizenclaw-unittests CXX)
-    set(CMAKE_CXX_STANDARD 20)
-    set(CMAKE_CXX_STANDARD_REQUIRED ON)
-endif()
+## Core sources to test (excluding daemon main)
+AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/core CORE_SRCS)
+AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/llm LLM_SRCS)
+AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/channel CHANNEL_SRCS)
+AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/storage STORAGE_SRCS)
+AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/infra INFRA_SRCS)
+AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/scheduler SCHEDULER_SRCS)
+AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/../../src/common COMMON_SRCS)
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(GTEST_DEPS REQUIRED gtest gmock)
-pkg_check_modules(CORE_DEPS REQUIRED
-    tizen-core glib-2.0 dlog libcurl sqlite3
-    capi-appfw-tizen-action)
-pkg_check_modules(LIBSOUP REQUIRED libsoup-2.4)
-pkg_check_modules(LIBWEBSOCKETS REQUIRED libwebsockets)
+# Exclude daemon main (tizenclaw.cc) from test build
+LIST(FILTER CORE_SRCS EXCLUDE REGEX "tizenclaw\\.cc$")
 
-# Test Sources
-set(UNIT_TEST_SRCS
-    main.cc
-    agent_core_test.cc
-    container_engine_test.cc
-    telegram_client_test.cc
-    llm_backend_test.cc
-    http_client_test.cc
-    session_store_test.cc
-    mcp_server_test.cc
-    tool_policy_test.cc
-    key_store_test.cc
-    audit_logger_test.cc
-    task_scheduler_test.cc
-    channel_test.cc
-    skill_watcher_test.cc
-    webhook_channel_test.cc
-    agent_core_session_test.cc
-    agent_role_test.cc
-    pipeline_executor_test.cc
-    a2a_handler_test.cc
-    slack_discord_channel_test.cc
-    embedding_store_test.cc
-    web_dashboard_test.cc
-    voice_channel_test.cc
-    health_monitor_test.cc
-    ota_updater_test.cc
-    action_bridge_test.cc
+ADD_EXECUTABLE(tizenclaw-unittests
+  ${UNIT_TEST_SRCS}
+  ${COMMON_SRCS}
+  ${CORE_SRCS}
+  ${LLM_SRCS}
+  ${CHANNEL_SRCS}
+  ${STORAGE_SRCS}
+  ${INFRA_SRCS}
+  ${SCHEDULER_SRCS}
 )
 
-# Mock Sources
-set(MOCK_SRCS
-    # mock/mock_dlog.cc
+TARGET_INCLUDE_DIRECTORIES(tizenclaw-unittests PUBLIC
+  "${CMAKE_CURRENT_SOURCE_DIR}"
+  "${CMAKE_CURRENT_SOURCE_DIR}/mock"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../src/common"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../src/common/nlohmann"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/core"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/llm"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/channel"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/storage"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/infra"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/scheduler"
 )
 
-# Main project sources to test (excluding main())
-set(CORE_SRCS
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/common/logging.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/common/file_log_backend.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/core/agent_core.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/core/agent_role.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/core/pipeline_executor.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/core/tool_policy.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/core/skill_watcher.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/llm/llm_backend_factory.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/llm/gemini_backend.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/llm/openai_backend.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/llm/anthropic_backend.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/llm/ollama_backend.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/channel/channel_registry.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/channel/telegram_client.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/channel/mcp_server.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/channel/webhook_channel.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/channel/slack_channel.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/channel/discord_channel.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/channel/web_dashboard.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/channel/a2a_handler.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/channel/voice_channel.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/storage/session_store.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/storage/embedding_store.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/storage/audit_logger.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/infra/http_client.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/infra/key_store.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/infra/container_engine.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/infra/health_monitor.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/infra/ota_updater.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/scheduler/task_scheduler.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/core/action_bridge.cc
+APPLY_PKG_CONFIG(tizenclaw-unittests PUBLIC
+  GTEST_DEPS
+  TIZEN_CORE_DEPS
+  GLIB_DEPS
+  DLOG_DEPS
+  LIBCURL_DEPS
+  SQLITE3_DEPS
+  TIZEN_ACTION_DEPS
+  LIBSOUP_DEPS
+  LIBWEBSOCKETS_DEPS
 )
 
-add_executable(tizenclaw-unittests
-    ${UNIT_TEST_SRCS}
-    ${MOCK_SRCS}
-    ${CORE_SRCS}
+TARGET_LINK_LIBRARIES(tizenclaw-unittests PUBLIC pthread)
+
+TARGET_COMPILE_DEFINITIONS(tizenclaw-unittests PUBLIC
+  TIZEN_ACTION_ENABLED
+  APP_DATA_DIR="${APP_DATA_DIR}"
 )
 
-target_include_directories(tizenclaw-unittests PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/mock
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/core
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/llm
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/channel
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/storage
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/infra
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/tizenclaw/scheduler
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/common/nlohmann
-    ${GTEST_DEPS_INCLUDE_DIRS}
-    ${CORE_DEPS_INCLUDE_DIRS}
-    ${LIBSOUP_INCLUDE_DIRS}
-    ${LIBWEBSOCKETS_INCLUDE_DIRS}
-)
+IF(TIZEN_STT_FOUND)
+  TARGET_LINK_LIBRARIES(tizenclaw-unittests PUBLIC ${TIZEN_STT_LIBRARIES})
+  TARGET_INCLUDE_DIRECTORIES(tizenclaw-unittests PUBLIC ${TIZEN_STT_INCLUDE_DIRS})
+  TARGET_COMPILE_DEFINITIONS(tizenclaw-unittests PUBLIC TIZEN_STT_ENABLED)
+ENDIF()
+IF(TIZEN_TTS_FOUND)
+  TARGET_LINK_LIBRARIES(tizenclaw-unittests PUBLIC ${TIZEN_TTS_LIBRARIES})
+  TARGET_INCLUDE_DIRECTORIES(tizenclaw-unittests PUBLIC ${TIZEN_TTS_INCLUDE_DIRS})
+  TARGET_COMPILE_DEFINITIONS(tizenclaw-unittests PUBLIC TIZEN_TTS_ENABLED)
+ENDIF()
 
-target_link_libraries(tizenclaw-unittests PUBLIC
-    ${GTEST_DEPS_LIBRARIES}
-    ${CORE_DEPS_LIBRARIES}
-    ${LIBSOUP_LIBRARIES}
-    ${LIBWEBSOCKETS_LIBRARIES}
-    pthread
-)
+## CTest
+ENABLE_TESTING()
+ADD_TEST(NAME TizenClawTests COMMAND tizenclaw-unittests)
 
-target_compile_definitions(
-    tizenclaw-unittests PUBLIC
-    TIZEN_ACTION_ENABLED)
-
-# CTest integration
-enable_testing()
-add_test(NAME TizenClawTests COMMAND tizenclaw-unittests)
-
-# Install test bin (optional, can be installed for runtime)
-install(TARGETS tizenclaw-unittests DESTINATION /usr/bin)
+INSTALL(TARGETS tizenclaw-unittests DESTINATION ${BINDIR})

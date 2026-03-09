@@ -1,0 +1,3 @@
+# CLI test tool (no Tizen deps — pure POSIX sockets)
+ADD_EXECUTABLE(${TARGET_TIZENCLAW_CLI} tizenclaw_cli.cc)
+INSTALL(TARGETS ${TARGET_TIZENCLAW_CLI} DESTINATION ${BINDIR})

@@ -1,0 +1,2 @@
+ADD_SUBDIRECTORY(tizenclaw)
+ADD_SUBDIRECTORY(tools)
