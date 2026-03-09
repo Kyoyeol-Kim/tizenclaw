@@ -54,7 +54,9 @@ WebDashboard::WebDashboard(
           });
   std::string ota_config =
       config_dir_ + "/ota_config.json";
-  ota_updater_->LoadConfig(ota_config);
+  if (!ota_updater_->LoadConfig(ota_config)) {
+    LOG(WARNING) << "OTA config not loaded (using defaults)";
+  }
 }
 
 WebDashboard::~WebDashboard() {

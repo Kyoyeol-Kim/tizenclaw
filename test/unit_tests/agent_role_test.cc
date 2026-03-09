@@ -189,7 +189,7 @@ TEST_F(AgentRoleTest,
     ]
   })");
 
-  engine.LoadRoles(path);
+  ASSERT_TRUE(engine.LoadRoles(path));
   auto roles = engine.ListRoles();
 
   EXPECT_EQ(roles.size(), 2u);
@@ -310,7 +310,7 @@ TEST_F(AgentRoleTest,
     ]
   })");
 
-  engine.LoadRoles(path);
+  ASSERT_TRUE(engine.LoadRoles(path));
   auto roles = engine.ListRoles();
 
   EXPECT_EQ(roles.size(), 1u);

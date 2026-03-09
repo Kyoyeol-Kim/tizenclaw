@@ -25,7 +25,7 @@ protected:
                test_config, 1);
 
         agent = new AgentCore();
-        agent->Initialize();
+        (void)agent->Initialize();
         server = new McpServer(agent);
     }
 

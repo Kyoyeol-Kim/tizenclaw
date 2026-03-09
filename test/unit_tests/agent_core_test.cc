@@ -46,7 +46,7 @@ TEST_F(AgentCoreTest, ProcessPromptWithoutInit) {
 }
 
 TEST_F(AgentCoreTest, ProcessPromptReturnsString) {
-    agent->Initialize();
+    (void)agent->Initialize();
     // ProcessPrompt should return a response.
     // In a test environment without a real LLM config/backend, 
     // it might return an error string, which is still a non-empty string.
@@ -60,7 +60,7 @@ TEST_F(AgentCoreTest, IterativeLoopDetection) {
     // This test would ideally mock LlmBackend to return tool_calls,
     // then verify that AgentCore::ProcessPrompt enters a second iteration.
     // For now, we perform a basic call.
-    agent->Initialize();
+    (void)agent->Initialize();
     std::string result = agent->ProcessPrompt("multi_step_session", "List apps and then check Wi-Fi.");
     EXPECT_FALSE(result.empty());
 }

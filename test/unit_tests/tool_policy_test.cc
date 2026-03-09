@@ -52,7 +52,7 @@ TEST_F(ToolPolicyTest, BlockedSkillRejected) {
     })" << std::endl;
     f.close();
 
-    policy->LoadConfig("test_tool_policy.json");
+    ASSERT_TRUE(policy->LoadConfig("test_tool_policy.json"));
 
     std::string violation =
         policy->CheckPolicy(
@@ -68,7 +68,7 @@ TEST_F(ToolPolicyTest, LoopDetectionBlocks) {
       << std::endl;
     f.close();
 
-    policy->LoadConfig("test_tool_policy.json");
+    ASSERT_TRUE(policy->LoadConfig("test_tool_policy.json"));
 
     nlohmann::json args = {{"app_id", "test"}};
 
@@ -94,7 +94,7 @@ TEST_F(ToolPolicyTest,
       << std::endl;
     f.close();
 
-    policy->LoadConfig("test_tool_policy.json");
+    ASSERT_TRUE(policy->LoadConfig("test_tool_policy.json"));
 
     nlohmann::json args1 = {{"app_id", "app1"}};
     nlohmann::json args2 = {{"app_id", "app2"}};
@@ -113,7 +113,7 @@ TEST_F(ToolPolicyTest,
       << std::endl;
     f.close();
 
-    policy->LoadConfig("test_tool_policy.json");
+    ASSERT_TRUE(policy->LoadConfig("test_tool_policy.json"));
 
     nlohmann::json args = {{"app_id", "test"}};
 
@@ -132,7 +132,7 @@ TEST_F(ToolPolicyTest, ResetSessionClears) {
       << std::endl;
     f.close();
 
-    policy->LoadConfig("test_tool_policy.json");
+    ASSERT_TRUE(policy->LoadConfig("test_tool_policy.json"));
 
     nlohmann::json args = {{"app_id", "test"}};
 
@@ -200,7 +200,7 @@ TEST_F(ToolPolicyTest,
       << std::endl;
     f.close();
 
-    policy->LoadConfig("test_tool_policy.json");
+    ASSERT_TRUE(policy->LoadConfig("test_tool_policy.json"));
 
     EXPECT_EQ(policy->GetMaxIterations(), 10);
 }
@@ -234,8 +234,8 @@ TEST_F(ToolPolicyTest,
        ResetIdleTrackingClears) {
     std::string same = "same_output";
 
-    policy->CheckIdleProgress("s1", same);
-    policy->CheckIdleProgress("s1", same);
+    (void)policy->CheckIdleProgress("s1", same);
+    (void)policy->CheckIdleProgress("s1", same);
 
     // Reset before hitting window
     policy->ResetIdleTracking("s1");
@@ -253,8 +253,8 @@ TEST_F(ToolPolicyTest,
        ResetSessionClearsIdle) {
     std::string same = "same_output";
 
-    policy->CheckIdleProgress("s1", same);
-    policy->CheckIdleProgress("s1", same);
+    (void)policy->CheckIdleProgress("s1", same);
+    (void)policy->CheckIdleProgress("s1", same);
 
     // ResetSession should also clear idle
     policy->ResetSession("s1");

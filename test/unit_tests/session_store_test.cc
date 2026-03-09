@@ -190,7 +190,7 @@ TEST_F(SessionStoreTest, DeleteSession) {
     msg.text = "test";
     history.push_back(msg);
 
-    store_.SaveSession("del_test", history);
+    ASSERT_TRUE(store_.SaveSession("del_test", history));
     auto loaded =
         store_.LoadSession("del_test");
     EXPECT_FALSE(loaded.empty());

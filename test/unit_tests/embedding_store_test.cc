@@ -51,9 +51,9 @@ TEST_F(EmbeddingStoreTest, SearchTopK) {
   std::vector<float> emb2 = {0, 1, 0, 0};
   std::vector<float> emb3 = {0.9f, 0.1f, 0, 0};
 
-  store_.StoreChunk("doc1", "chunk1", emb1);
-  store_.StoreChunk("doc2", "chunk2", emb2);
-  store_.StoreChunk("doc3", "chunk3", emb3);
+  ASSERT_TRUE(store_.StoreChunk("doc1", "chunk1", emb1));
+  ASSERT_TRUE(store_.StoreChunk("doc2", "chunk2", emb2));
+  ASSERT_TRUE(store_.StoreChunk("doc3", "chunk3", emb3));
 
   // Search with query similar to emb1
   std::vector<float> query = {1, 0, 0, 0};
@@ -71,9 +71,9 @@ TEST_F(EmbeddingStoreTest, DeleteSource) {
   ASSERT_TRUE(store_.Initialize(db_path_));
 
   std::vector<float> emb = {1, 0, 0};
-  store_.StoreChunk("src1", "a", emb);
-  store_.StoreChunk("src1", "b", emb);
-  store_.StoreChunk("src2", "c", emb);
+  ASSERT_TRUE(store_.StoreChunk("src1", "a", emb));
+  ASSERT_TRUE(store_.StoreChunk("src1", "b", emb));
+  ASSERT_TRUE(store_.StoreChunk("src2", "c", emb));
   EXPECT_EQ(store_.GetChunkCount(), 3);
 
   EXPECT_TRUE(store_.DeleteSource("src1"));

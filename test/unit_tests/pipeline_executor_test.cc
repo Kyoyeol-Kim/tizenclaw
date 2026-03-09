@@ -346,7 +346,7 @@ TEST_F(PipelineExecutorTest,
              {"condition", "true"}}
         }}
     };
-    executor.CreatePipeline(def);
+    (void)executor.CreatePipeline(def);
   }
 
   auto list = executor.ListPipelines();

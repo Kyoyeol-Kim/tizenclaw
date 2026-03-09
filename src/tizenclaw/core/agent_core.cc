@@ -148,7 +148,9 @@ bool AgentCore::Initialize() {
   std::string policy_path =
       "/opt/usr/share/tizenclaw/config/"
       "tool_policy.json";
-  tool_policy_.LoadConfig(policy_path);
+  if (!tool_policy_.LoadConfig(policy_path)) {
+    LOG(WARNING) << "Tool policy config not loaded (using defaults)";
+  }
 
   // Parse fallback backends from config
   if (llm_config.contains(
@@ -257,7 +259,7 @@ void AgentCore::Shutdown() {
   {
     std::lock_guard<std::mutex> lock(session_mutex_);
     for (auto& [sid, history] : sessions_) {
-      session_store_.SaveSession(sid, history);
+      (void)session_store_.SaveSession(sid, history);
     }
     sessions_.clear();
   }
@@ -392,7 +394,7 @@ std::string AgentCore::ProcessPrompt(
         sessions_[session_id].push_back(model_msg);
         TrimHistory(session_id);
         
-        session_store_.SaveSession(
+        (void)session_store_.SaveSession(
             session_id, sessions_[session_id]);
       }
 
@@ -601,7 +603,7 @@ std::string AgentCore::ProcessPrompt(
             session_mutex_);
         sessions_[session_id].push_back(
             stop_msg);
-        session_store_.SaveSession(
+        (void)session_store_.SaveSession(
             session_id,
             sessions_[session_id]);
       }
@@ -618,7 +620,7 @@ std::string AgentCore::ProcessPrompt(
   {
     std::lock_guard<std::mutex> lock(
         session_mutex_);
-    session_store_.SaveSession(
+    (void)session_store_.SaveSession(
         session_id, sessions_[session_id]);
   }
 
