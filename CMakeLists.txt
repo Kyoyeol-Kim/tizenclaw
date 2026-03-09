@@ -135,8 +135,9 @@ install(PROGRAMS
 if(NOT DEFINED TIZENCLAW_ARCH)
   execute_process(COMMAND uname -m OUTPUT_VARIABLE TIZENCLAW_ARCH OUTPUT_STRIP_TRAILING_WHITESPACE)
 endif()
-# Normalize: armv7hl → armv7l (same rootfs image)
-if(TIZENCLAW_ARCH STREQUAL "armv7hl")
+# Normalize arch variants to rootfs directory names
+# GBS %{_arch} may return: arm, armv7l, armv7hl → all use armv7l rootfs
+if(TIZENCLAW_ARCH MATCHES "^arm" AND NOT TIZENCLAW_ARCH STREQUAL "aarch64")
   set(TIZENCLAW_ARCH "armv7l")
 endif()
 message(STATUS "Target architecture for rootfs: ${TIZENCLAW_ARCH}")

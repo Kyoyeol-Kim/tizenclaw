@@ -281,6 +281,7 @@ AgentCore에 직접 구현된 내장 도구:
 |------|----------|
 | **빌드 시스템** | CMake 3.0+, C++17, `pkg-config` (tizen-core, glib-2.0, dlog, libcurl, libsoup-3.0, libwebsockets, sqlite3) |
 | **패키징** | GBS RPM (`tizenclaw.spec`), crun 소스 빌드 포함 |
+| **아키텍처** | x86_64 (에뮬레이터), armv7l (32-bit ARM), aarch64 (64-bit ARM) — 아키텍처별 rootfs `data/img/<arch>/` |
 | **systemd** | `tizenclaw.service` (Type=simple), `tizenclaw-skills-secure.service` (Type=oneshot) |
 | **테스트** | gtest/gmock, `%check`에서 `ctest -V` 실행 |
 

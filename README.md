@@ -205,10 +205,17 @@ Agents communicate via `create_session` / `send_to_session` and are defined in `
 
 ## Build
 
-TizenClaw uses the Tizen GBS build system:
+TizenClaw uses the Tizen GBS build system. The default target is **x86_64** (emulator), but it also supports **armv7l** and **aarch64** for real devices:
 
 ```bash
+# x86_64 (emulator, default)
 gbs build -A x86_64 --include-all
+
+# armv7l (32-bit ARM devices)
+gbs build -A armv7l --include-all
+
+# aarch64 (64-bit ARM devices)
+gbs build -A aarch64 --include-all
 ```
 
 For subsequent builds (after initial):
@@ -216,9 +223,11 @@ For subsequent builds (after initial):
 gbs build -A x86_64 --include-all --noinit
 ```
 
-This produces an RPM package at:
+The build system automatically selects the correct rootfs image from `data/img/<arch>/rootfs.tar.gz` based on the target architecture.
+
+RPM output:
 ```
-~/GBS-ROOT/local/repos/tizen/x86_64/RPMS/tizenclaw-1.0.0-1.x86_64.rpm
+~/GBS-ROOT/local/repos/tizen/<arch>/RPMS/tizenclaw-1.0.0-1.<arch>.rpm
 ```
 
 Unit tests are automatically executed during the build via `%check`.

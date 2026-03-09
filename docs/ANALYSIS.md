@@ -281,6 +281,7 @@ Built-in tools (implemented in AgentCore directly):
 |------|---------|
 | **Build System** | CMake 3.0+, C++17, `pkg-config` (tizen-core, glib-2.0, dlog, libcurl, libsoup-3.0, libwebsockets, sqlite3) |
 | **Packaging** | GBS RPM (`tizenclaw.spec`), includes crun source build |
+| **Architectures** | x86_64 (emulator), armv7l (32-bit ARM), aarch64 (64-bit ARM) — per-arch rootfs in `data/img/<arch>/` |
 | **systemd** | `tizenclaw.service` (Type=simple), `tizenclaw-skills-secure.service` (Type=oneshot) |
 | **Testing** | gtest/gmock, `ctest -V` run during `%check` |
 
