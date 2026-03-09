@@ -48,6 +48,9 @@ PKG_CHECK_MODULES(GTEST_DEPS REQUIRED gtest gmock)
 ## Build targets
 ADD_SUBDIRECTORY(src)
 
+## Third-party: crun (extract, patch, configure, build)
+ADD_SUBDIRECTORY(third_party/crun)
+
 ## Unit Tests
 ENABLE_TESTING()
 ADD_SUBDIRECTORY(test/unit_tests)

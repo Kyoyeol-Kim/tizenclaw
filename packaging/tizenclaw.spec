@@ -41,61 +41,12 @@ export LDFLAGS="$LDFLAGS -Wl,--as-needed"
 %cmake . -DTIZENCLAW_ARCH=%{_arch}
 %__make %{?_smp_mflags}
 
-# Build crun from source
-CRUN_VERSION="1.26"
-CRUN_TAR="third_party/crun/src/crun-${CRUN_VERSION}.tar.gz"
-CRUN_STAGE_DIR="crun-stage"
-rm -rf "${CRUN_STAGE_DIR}"
-mkdir -p "${CRUN_STAGE_DIR}"
-
-if [ -f "${CRUN_TAR}" ]; then
-  tar -xf "${CRUN_TAR}" -C "${CRUN_STAGE_DIR}"
-  CRUN_SRC_DIR="${CRUN_STAGE_DIR}/crun-${CRUN_VERSION}"
-  if [ ! -x "${CRUN_SRC_DIR}/configure" ] && [ -x "${CRUN_SRC_DIR}/autogen.sh" ]; then
-    (cd "${CRUN_SRC_DIR}" && ./autogen.sh)
-  fi
-
-  # Override CFLAGS for third-party crun build to suppress warnings
-  # that become errors under -Werror (shadow, unused-variable, stringop).
-  export CFLAGS="${CFLAGS} -Wno-shadow -Wno-unused-variable -Wno-stringop-overread -Wno-stringop-overflow"
-
-  if (cd "${CRUN_SRC_DIR}" && \
-      ./configure \
-        --prefix=/usr \
-        --disable-systemd \
-        --disable-shared \
-        --enable-embedded-yajl \
-        --disable-caps \
-        --disable-seccomp && \
-      make %{?_smp_mflags}); then
-    cp "${CRUN_SRC_DIR}/crun" "${CRUN_STAGE_DIR}/crun"
-    chmod +x "${CRUN_STAGE_DIR}/crun"
-    echo "Built crun from source successfully."
-  else
-    echo "ERROR: Source build for crun failed."
-    exit 1
-  fi
-else
-  echo "ERROR: Missing crun source tarball: ${CRUN_TAR}"
-  exit 1
-fi
-
 %check
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:%{buildroot}/usr/lib
 ctest -V
 
 %install
 %make_install
-
-CRUN_SRC="crun-stage/crun"
-if [ ! -x "${CRUN_SRC}" ]; then
-  echo "Missing source-built crun binary: ${CRUN_SRC}"
-  echo "crun source build must succeed before install."
-  exit 1
-fi
-echo "Using source-built crun binary: ${CRUN_SRC}"
-install -D -m 0755 "${CRUN_SRC}" \
-  %{buildroot}/usr/libexec/tizenclaw/crun
 
 # Tizen structure
 mkdir -p %{buildroot}%{_bindir}
