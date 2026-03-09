@@ -106,24 +106,41 @@ ls -lt ~/GBS-ROOT/local/repos/tizen/x86_64/logs/fail/ 2>/dev/null | head -3
 grep -E "PASSED|FAILED|tests from" ~/GBS-ROOT/local/repos/tizen/x86_64/logs/success/tizenclaw-*/log.txt | tail -5
 ```
 
-#### `git` 명령 실행
+#### `git` 명령 실행 (파일 리다이렉트 필수)
 ```bash
-# git add, commit, push 등은 WaitMsBeforeAsync=10000 으로 설정하여
-# 동기적으로 완료될 수 있도록 합니다.
-# 출력이 없어도 Exit code: 0 이면 성공입니다.
+# ⚠️ samba 경로에서 git 명령은 stdout이 캡처되지 않고,
+#    대용량 바이너리가 포함된 커밋은 command_status에서
+#    CANCELED로 잘못 보고될 수 있습니다.
+#    반드시 /tmp/ 파일 리다이렉트 패턴을 사용하세요.
+
+# 1. 명령 실행 + 결과를 /tmp 파일로 리다이렉트 (WaitMsBeforeAsync=10000)
 git add <files>
-git commit -m "message"
-git push origin main
+git commit -m "message" > /tmp/git_output.txt 2>&1; echo "EXIT:$?" >> /tmp/git_output.txt
+
+# 2. 결과 확인 (별도 run_command로)
+cat /tmp/git_output.txt
+
+# 3. 커밋 검증 (git log도 동일 패턴)
+git log -1 --oneline > /tmp/git_output.txt 2>&1
+cat /tmp/git_output.txt
 ```
+
+> [!WARNING]
+> `command_status`에서 **CANCELED**가 표시되어도 명령은 실제로 **성공했을 수 있습니다.**
+> samba 경로의 대용량 파일(rootfs.tar.gz 등)을 포함하는 git 작업은 10초 이상 걸릴 수 있으며,
+> 이 경우 command_status가 CANCELED를 반환해도 실제로는 정상 완료됩니다.
+> **재실행하지 말고**, 반드시 `/tmp/` 파일 리다이렉트로 결과를 확인하세요.
 
 #### 일반 shell 명령
 ```bash
 # sdb, curl 등 짧은 명령은 WaitMsBeforeAsync=5000~10000 설정
-# 출력이 캡처되지 않으면 Exit code로 성공 여부 판단
+# 출력이 캡처되지 않으면 /tmp/ 파일 리다이렉트 패턴 사용:
+<command> > /tmp/cmd_output.txt 2>&1; echo "EXIT:$?" >> /tmp/cmd_output.txt
+cat /tmp/cmd_output.txt
 ```
 
 > [!CAUTION]
-> `command_status`에서 "No output"이 반복되면 **명령이 정상 실행 중**일 가능성이 높습니다. 절대로 "멈춤"으로 판단하여 terminate하거나 동일 명령을 재실행하지 마세요. 위의 폴링 패턴을 사용하세요.
+> `command_status`에서 **"No output"** 또는 **"CANCELED"**가 반복되면 **명령이 정상 실행 중이거나 이미 완료되었을** 가능성이 높습니다. 절대로 "멈춤"으로 판단하여 terminate하거나 동일 명령을 재실행하지 마세요. `/tmp/` 파일 리다이렉트 패턴으로 결과를 확인하세요.
 
 ---
 
