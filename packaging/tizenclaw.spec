@@ -42,7 +42,8 @@ export LDFLAGS="$LDFLAGS -Wl,--as-needed"
 mkdir -p build
 cd build
 cmake .. \
-    -DCMAKE_INSTALL_PREFIX=/usr
+    -DCMAKE_INSTALL_PREFIX=/usr \
+    -DTIZENCLAW_ARCH=%{_arch}
 make %{?_smp_mflags}
 
 cd ..
@@ -105,6 +106,7 @@ install -D -m 0755 "${CRUN_SRC}" \
 mkdir -p %{buildroot}/usr/bin
 mkdir -p %{buildroot}/usr/lib/systemd/system/
 mkdir -p %{buildroot}/usr/lib/systemd/system/multi-user.target.wants
+mkdir -p %{buildroot}/opt/usr/share/tizenclaw/img
 mkdir -p %{buildroot}/opt/usr/share/tizenclaw/skills
 mkdir -p %{buildroot}/opt/usr/share/tizenclaw/config
 mkdir -p %{buildroot}/opt/usr/share/tizenclaw/tools/embedded
@@ -125,7 +127,7 @@ ln -sf ../tizenclaw-skills-secure.service %{buildroot}/usr/lib/systemd/system/mu
 /usr/libexec/tizenclaw/run_standard_container.sh
 /usr/libexec/tizenclaw/skills_secure_container.sh
 /usr/libexec/tizenclaw/crun
-/opt/usr/share/tizenclaw/rootfs.tar.gz
+/opt/usr/share/tizenclaw/img/rootfs.tar.gz
 /opt/usr/share/tizenclaw/config/llm_config.json.sample
 /opt/usr/share/tizenclaw/config/telegram_config.json.sample
 /opt/usr/share/tizenclaw/config/webhook_config.json.sample

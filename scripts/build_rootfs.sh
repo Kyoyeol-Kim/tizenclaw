@@ -23,7 +23,8 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 PROJECT_DIR="${SCRIPT_DIR}/.."
 DATA_DIR="${PROJECT_DIR}/data"
 ROOTFS_DIR="${DATA_DIR}/rootfs_temp"
-OUTPUT_TAR="${DATA_DIR}/rootfs.tar.gz"
+OUTPUT_TAR="${DATA_DIR}/img/${ALPINE_ARCH}/rootfs.tar.gz"
+mkdir -p "${DATA_DIR}/img/${ALPINE_ARCH}"
 
 echo "Using Project Directory: $PROJECT_DIR"
 

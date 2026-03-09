@@ -3,7 +3,7 @@ set -euo pipefail
 
 APP_DATA_DIR="/opt/usr/share/tizenclaw"
 BUNDLE_DIR="${APP_DATA_DIR}/bundles/skills_secure"
-ROOTFS_TAR="${APP_DATA_DIR}/rootfs.tar.gz"
+ROOTFS_TAR="${APP_DATA_DIR}/img/rootfs.tar.gz"
 CONTAINER_ID="tizenclaw_skills_secure"
 
 detect_runtime() {

@@ -80,7 +80,7 @@ ContainerEngine::ContainerEngine()
       app_data_dir_(APP_DATA_DIR),
       skills_dir_(BuildPaths("skills")),
       bundle_dir_(BuildPaths("bundles/skills_secure")),
-      rootfs_tar_(BuildPaths("rootfs.tar.gz")),
+      rootfs_tar_(BuildPaths("img/rootfs.tar.gz")),
       container_id_(kSkillsContainerId),
       crun_root_(BuildPaths(".crun")) {
 }

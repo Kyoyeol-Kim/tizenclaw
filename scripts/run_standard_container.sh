@@ -3,7 +3,7 @@ set -euo pipefail
 
 APP_DATA_DIR="/opt/usr/share/tizenclaw"
 BUNDLE_DIR="${APP_DATA_DIR}/bundles/standard_agent"
-ROOTFS_TAR="${APP_DATA_DIR}/rootfs.tar.gz"
+ROOTFS_TAR="${APP_DATA_DIR}/img/rootfs.tar.gz"
 CONTAINER_ID="tizenclaw_standard"
 LOG_FILE="/opt/var/log/tizenclaw-standard-container.log"
 SAFE_MODE="${SAFE_MODE:-0}"

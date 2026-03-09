@@ -160,7 +160,8 @@ tizenclaw/
 │   ├── tool_policy.json             # Tool execution policy
 │   ├── system_prompt.txt            # Default system prompt
 │   ├── web/                         # Dashboard SPA files
-│   └── rootfs.tar.gz                # Alpine RootFS (49 MB)
+│   └── img/                         # Container rootfs images (per-arch)
+│       └── <arch>/rootfs.tar.gz     # Alpine RootFS (49 MB)
 ├── test/unit_tests/                 # gtest/gmock unit tests
 ├── packaging/                       # RPM packaging & systemd
 │   ├── tizenclaw.spec               # GBS RPM build spec

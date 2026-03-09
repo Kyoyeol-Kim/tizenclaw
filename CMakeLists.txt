@@ -131,7 +131,12 @@ install(PROGRAMS
     scripts/skills_secure_container.sh
     DESTINATION /usr/libexec/tizenclaw/
 )
-install(FILES data/rootfs.tar.gz DESTINATION /opt/usr/share/tizenclaw/)
+# Determine arch for rootfs image selection
+if(NOT DEFINED TIZENCLAW_ARCH)
+  execute_process(COMMAND uname -m OUTPUT_VARIABLE TIZENCLAW_ARCH OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif()
+message(STATUS "Target architecture for rootfs: ${TIZENCLAW_ARCH}")
+install(FILES data/img/${TIZENCLAW_ARCH}/rootfs.tar.gz DESTINATION /opt/usr/share/tizenclaw/img/)
 install(FILES data/llm_config.json.sample data/telegram_config.json.sample data/webhook_config.json.sample data/slack_config.json.sample data/discord_config.json.sample data/agent_roles.json.sample data/a2a_config.json.sample data/ota_config.json.sample data/system_prompt.txt data/tool_policy.json DESTINATION /opt/usr/share/tizenclaw/config/)
 install(DIRECTORY skills/ DESTINATION /opt/usr/share/tizenclaw/skills/)
 install(DIRECTORY tools/embedded/ DESTINATION /opt/usr/share/tizenclaw/tools/embedded/)

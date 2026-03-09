@@ -160,7 +160,8 @@ tizenclaw/
 │   ├── tool_policy.json             # 도구 실행 정책
 │   ├── system_prompt.txt            # 기본 시스템 프롬프트
 │   ├── web/                         # 대시보드 SPA 파일
-│   └── rootfs.tar.gz                # Alpine RootFS (49 MB)
+│   └── img/                         # 컨테이너 rootfs 이미지 (아키텍처별)
+│       └── <arch>/rootfs.tar.gz     # Alpine RootFS (49 MB)
 ├── test/unit_tests/                 # gtest/gmock 단위 테스트
 ├── packaging/                       # RPM 패키징 & systemd
 │   ├── tizenclaw.spec               # GBS RPM 빌드 스펙
