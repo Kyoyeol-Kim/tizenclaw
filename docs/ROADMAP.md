@@ -52,10 +52,11 @@
 |----------|-------------|
 | **Native C++ Performance** | Lower memory/CPU vs TypeScript — optimal for Tizen embedded |
 | **OCI Container Isolation** | crun-based `seccomp` + `namespace` — finer syscall control than app-level sandboxing |
-| **Direct Tizen C-API** | ctypes wrappers for 35+ device APIs (battery, Wi-Fi, BT, display, volume, sensors, notifications, alarm, thermal, data usage, sound devices, media content, MIME type, WiFi/BT scan, app control, metadata, download) |
+| **Direct Tizen C-API** | ctypes wrappers for 35+ device APIs (battery, Wi-Fi, BT, display, volume, sensors, notifications, alarm, thermal, data usage, sound devices, media content, MIME type, WiFi/BT scan, app control, metadata, download) + runtime custom skill creation |
 | **Multi-LLM Support** | 5 backends (Gemini, OpenAI, Claude, xAI, Ollama) switchable at runtime |
 | **Lightweight Deployment** | systemd + RPM — standalone device execution without Node.js/Docker |
 | **Native MCP Server** | C++ MCP server integrated into daemon — Claude Desktop controls Tizen devices via sdb |
+| **Multi-Agent System** | Default orchestrator, skill manager, and device monitor agents with `create_session` / `send_to_session` coordination |
 
 ---
 

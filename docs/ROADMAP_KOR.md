@@ -52,10 +52,11 @@
 |------|------|
 | **네이티브 C++ 성능** | TypeScript 대비 낮은 메모리/CPU — Tizen 임베디드 환경에 최적 |
 | **OCI 컨테이너 격리** | crun 기반 `seccomp` + `namespace` — 앱 수준 샌드박싱보다 정밀한 시스콜 제어 |
-| **Tizen C-API 직접 접근** | ctypes 래퍼로 35개 이상 디바이스 API (배터리, Wi-Fi, BT, 디스플레이, 볼륨, 센서, 알림, 알람, 온도, 데이터 사용량, 오디오, 미디어, MIME, WiFi/BT 스캔, 앱 컨트롤, 메타데이터, 다운로드) 직접 제어 |
+| **Tizen C-API 직접 접근** | ctypes 래퍼로 35개 이상 디바이스 API (배터리, Wi-Fi, BT, 디스플레이, 볼륨, 센서, 알림, 알람, 온도, 데이터 사용량, 오디오, 미디어, MIME, WiFi/BT 스캔, 앱 컨트롤, 메타데이터, 다운로드) 직접 제어 + 런타임 커스텀 스킬 생성 |
 | **멀티 LLM 지원** | 5개 백엔드 (Gemini, OpenAI, Claude, xAI, Ollama) 런타임 전환 가능 |
 | **경량 배포** | systemd + RPM — Node.js/Docker 없이 단독 디바이스 실행 |
 | **네이티브 MCP 서버** | C++ MCP 서버가 데몬에 내장 — Claude Desktop에서 sdb를 통해 Tizen 디바이스 제어 |
+| **멀티 에이전트 시스템** | 기본 오케스트레이터, 스킬 매니저, 디바이스 모니터 에이전트 + `create_session` / `send_to_session` 협업 |
 | **Tizen Action Framework** | Per-action LLM 도구 + MD 스키마 캐싱 + 이벤트 기반 업데이트 |
 | **도구 스키마 디스커버리** | 내장 + 액션 도구 스키마를 MD 파일로 저장, LLM 시스템 프롬프트에 자동 로드 |
 

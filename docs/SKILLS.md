@@ -83,6 +83,7 @@ TizenClaw provides **35 container skills** (Python, sandboxed via OCI) and **10+
 |------|-------------|
 | `execute_code` | Execute Python code in sandbox |
 | `file_manager` | Read/write/list files on device |
+| `manage_custom_skill` | Create/update/delete/list custom skills at runtime |
 | `create_task` | Create a scheduled task |
 | `list_tasks` | List active scheduled tasks |
 | `cancel_task` | Cancel a scheduled task |
@@ -93,6 +94,35 @@ TizenClaw provides **35 container skills** (Python, sandboxed via OCI) and **10+
 | `search_knowledge` | Semantic search in RAG store |
 | `execute_action` | Execute a Tizen Action Framework action |
 | `action_<name>` | Per-action tools (auto-discovered from Action Framework) |
+
+---
+
+## Runtime Custom Skills
+
+The LLM can create new skills at runtime using the `manage_custom_skill` tool. Custom skills are stored at `/opt/usr/share/tizenclaw/tools/custom_skills/` and are **immediately available** after creation (no restart needed).
+
+| Operation | Description |
+|-----------|-------------|
+| `create` | Generate `manifest.json` + Python script from LLM-generated code |
+| `update` | Modify existing skill code or description |
+| `delete` | Remove a custom skill |
+| `list` | List all custom skills |
+
+Custom skills follow the same structure as built-in skills: `manifest.json` (tool schema) + `<name>.py` (Python script using `CLAW_ARGS` env and `ctypes` FFI).
+
+---
+
+## Multi-Agent System
+
+TizenClaw supports a multi-agent architecture with specialized agents:
+
+| Agent | Type | Role |
+|-------|------|------|
+| **Orchestrator** | supervisor | Analyzes requests, decomposes goals, delegates to specialized agents |
+| **Skill Manager** | worker | Creates/updates/deletes custom skills at runtime via `manage_custom_skill` |
+| **Device Monitor** | worker | Monitors battery, temperature, memory, storage, network health |
+
+Agents are defined in `config/agent_roles.json` and communicate via `create_session` / `send_to_session` tools. The orchestrator is the default entry point when multi-agent mode is enabled.
 
 ---
 

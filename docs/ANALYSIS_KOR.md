@@ -42,7 +42,7 @@ graph LR
 
     subgraph Skills["OCI 컨테이너 (Alpine RootFS)"]
         SkillExec["SkillExecutor (IPC)"]
-        SkillList["35+ 스킬 (Tizen C-API)<br/>앱 · 디바이스 · 네트워크 · 미디어<br/>디스플레이 · 센서 · 시스템 제어<br/>tizen-core 비동기 지원"]
+        SkillList["35+ 스킬 (Tizen C-API)<br/>앱 · 디바이스 · 네트워크 · 미디어<br/>디스플레이 · 센서 · 시스템 제어<br/>+ 런타임 커스텀 스킬 (LLM 생성)<br/>tizen-core 비동기 지원"]
     end
 
     Telegram & Slack & Discord & Voice --> IPC

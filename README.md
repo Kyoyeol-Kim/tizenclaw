@@ -139,7 +139,7 @@ graph TB
 
     subgraph Secure["Secure Container (crun)"]
         Skills["Python Skills<br/>(sandboxed)"]
-        SkillList["35+ Skills via Tizen C-API<br/>App · Device · Network · Media<br/>Display · Sensor · System Control<br/>Async support via tizen-core"]
+        SkillList["35+ Skills via Tizen C-API<br/>App · Device · Network · Media<br/>Display · Sensor · System Control<br/>+ Runtime Custom Skills (LLM-generated)<br/>Async support via tizen-core"]
         Skills --- SkillList
     end
 
@@ -170,7 +170,7 @@ TizenClaw ships with **35 container skills** (Python, OCI sandbox) and **10+ bui
 | **Display & Hardware** | 6 | `control_display`, `control_volume`, `control_haptic`, `control_led` |
 | **Media & Content** | 5 | `get_metadata`, `get_media_content`, `get_mime_type`, `get_sound_devices` |
 | **System Actions** | 6 | `download_file` ⚡, `send_notification`, `schedule_alarm`, `play_tone`, `web_search` |
-| **Built-in Tools** | 10+ | `execute_code`, `file_manager`, `create_task`, `search_knowledge` |
+| **Built-in Tools** | 12+ | `execute_code`, `file_manager`, `manage_custom_skill`, `create_task`, `search_knowledge` |
 
 > ⚡ = Async skill using tizen-core event loop
 
@@ -179,6 +179,18 @@ TizenClaw ships with **35 container skills** (Python, OCI sandbox) and **10+ bui
 ### Tizen Action Framework (Native Device Actions)
 
 Actions registered via the Tizen Action Framework are automatically discovered and exposed as **per-action LLM tools** (e.g., `action_<name>`). Schema files are cached as Markdown and kept in sync via `action_event_cb` events. Available actions vary by device.
+
+### Multi-Agent System
+
+TizenClaw includes a default multi-agent system with specialized agents:
+
+| Agent | Role |
+|-------|------|
+| **Orchestrator** | Analyzes requests, decomposes goals, delegates to specialized agents |
+| **Skill Manager** | Creates/updates/deletes custom Python skills at runtime |
+| **Device Monitor** | Monitors battery, temperature, memory, storage, network health |
+
+Agents communicate via `create_session` / `send_to_session` and are defined in `config/agent_roles.json`. The `manage_custom_skill` tool enables runtime skill creation — the LLM generates Python code with Tizen C-API bindings that becomes immediately available as a new tool.
 
 ---
 

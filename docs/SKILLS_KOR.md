@@ -83,6 +83,7 @@ TizenClaw는 **35개 컨테이너 스킬** (Python, OCI 샌드박스)과 **10개
 |------|------|
 | `execute_code` | 샌드박스에서 Python 코드 실행 |
 | `file_manager` | 디바이스 파일 읽기/쓰기/조회 |
+| `manage_custom_skill` | 런타임 커스텀 스킬 생성/수정/삭제/조회 |
 | `create_task` | 예약 작업 생성 |
 | `list_tasks` | 활성 예약 작업 조회 |
 | `cancel_task` | 예약 작업 취소 |
@@ -93,6 +94,35 @@ TizenClaw는 **35개 컨테이너 스킬** (Python, OCI 샌드박스)과 **10개
 | `search_knowledge` | RAG 스토어 시맨틱 검색 |
 | `execute_action` | Tizen Action Framework 액션 실행 |
 | `action_<name>` | Per-action 도구 (Action Framework에서 자동 발견) |
+
+---
+
+## 런타임 커스텀 스킬
+
+LLM이 `manage_custom_skill` 도구를 사용하여 런타임에 새로운 스킬을 생성할 수 있습니다. 커스텀 스킬은 `/opt/usr/share/tizenclaw/tools/custom_skills/`에 저장되며 생성 즉시 사용 가능합니다 (재시작 불필요).
+
+| 작업 | 설명 |
+|------|------|
+| `create` | LLM이 생성한 코드로 `manifest.json` + Python 스크립트 자동 생성 |
+| `update` | 기존 스킬 코드 또는 설명 수정 |
+| `delete` | 커스텀 스킬 삭제 |
+| `list` | 모든 커스텀 스킬 조회 |
+
+커스텀 스킬은 내장 스킬과 동일한 구조: `manifest.json` (도구 스키마) + `<name>.py` (`CLAW_ARGS` 환경변수 + `ctypes` FFI 사용).
+
+---
+
+## 멀티 에이전트 시스템
+
+TizenClaw는 전문화된 에이전트를 활용한 멀티 에이전트 아키텍처를 지원합니다:
+
+| 에이전트 | 타입 | 역할 |
+|---------|------|------|
+| **Orchestrator** | supervisor | 요청 분석, 목표 분해, 전문 에이전트에 위임 |
+| **Skill Manager** | worker | `manage_custom_skill`을 통한 런타임 스킬 CRUD |
+| **Device Monitor** | worker | 배터리, 온도, 메모리, 저장소, 네트워크 상태 모니터링 |
+
+에이전트는 `config/agent_roles.json`에 정의되며 `create_session` / `send_to_session` 도구를 통해 통신합니다.
 
 ---
 
