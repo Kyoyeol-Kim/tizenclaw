@@ -35,7 +35,7 @@ Unit tests for TizenClaw
 cp %{SOURCE1001} .
 
 %build
-export CFLAGS="$CFLAGS -Wall"
+export CFLAGS="$CFLAGS -Wall -Wno-shadow -Wno-unused-function"
 export CXXFLAGS="$CXXFLAGS -Wall"
 export LDFLAGS="$LDFLAGS -Wl,--as-needed"
 
