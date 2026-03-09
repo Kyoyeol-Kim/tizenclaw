@@ -60,6 +60,11 @@ if [ -f "${CRUN_TAR}" ]; then
     (cd "${CRUN_SRC_DIR}" && ./autogen.sh)
   fi
 
+  # Override CFLAGS for third-party crun build to suppress warnings
+  # that become errors under -Werror (shadow, unused-variable, stringop).
+  # These are known issues in crun source that we cannot modify.
+  export CFLAGS="${CFLAGS} -Wno-shadow -Wno-unused-variable -Wno-stringop-overread -Wno-stringop-overflow"
+
   if (cd "${CRUN_SRC_DIR}" && \
       ./configure \
         --prefix=/usr \
