@@ -34,7 +34,7 @@ namespace tizenclaw {
 
 
 #ifndef PROJECT_TAG
-#define PROJECT_TAG "TIZEN_CLAW"
+#define PROJECT_TAG "TIZENCLAW"
 #endif
 
 #ifdef LOG
