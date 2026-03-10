@@ -1,8 +1,20 @@
-// Copyright 2026 TizenClaw Authors
-// A2A (Agent-to-Agent) Protocol handler
-// implementing Google A2A specification
-#ifndef TIZENCLAW_CHANNEL_A2A_HANDLER_H_
-#define TIZENCLAW_CHANNEL_A2A_HANDLER_H_
+/*
+ * Copyright (c) 2026 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+#ifndef TIZENCLAW_CHANNEL_A2A_HANDLER_HH_
+#define TIZENCLAW_CHANNEL_A2A_HANDLER_HH_
 
 #include <map>
 #include <mutex>
@@ -94,4 +106,4 @@ class A2AHandler {
 
 }  // namespace tizenclaw
 
-#endif  // TIZENCLAW_CHANNEL_A2A_HANDLER_H_
+#endif // TIZENCLAW_CHANNEL_A2A_HANDLER_HH_
