@@ -83,8 +83,9 @@ sdb shell app_launcher -s org.tizen.tizenclaw-webview __APP_SVC_URI__ "http://lo
 
 Alternatively, access it from your development machine:
 ```bash
-# Access dashboard from host
-open http://<device-ip>:9090
+# Forward port and access dashboard from host
+sdb forward tcp:9090 tcp:9090
+open http://localhost:9090
 ```
 
 ### Manual Build and Deployment
