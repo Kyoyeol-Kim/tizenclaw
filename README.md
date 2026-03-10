@@ -55,17 +55,28 @@ TizenClaw is part of the **Claw** family of AI agent runtimes, each targeting di
 
 ## Quick Start
 
-```bash
-# Build
-gbs build -A x86_64 --include-all
+The recommended way to build and deploy TizenClaw is using the included `deploy.sh` script:
 
-# Or use the deploy script for an automated build + deploy:
+```bash
+# Automated build + deploy to device
 ./deploy.sh
 
 # To build and deploy with the secure tunnel dependency (ngrok):
 ./deploy.sh --with-ngrok
 
-# Manual deployment to device (if not using deploy.sh)
+# Access dashboard once deployed
+open http://<device-ip>:9090
+```
+
+### Manual Build and Deployment
+
+If you prefer to build and deploy manually, use the following commands:
+
+```bash
+# Build
+gbs build -A x86_64 --include-all
+
+# Manual deployment to device
 sdb root on && sdb shell mount -o remount,rw /
 sdb push ~/GBS-ROOT/local/repos/tizen/x86_64/RPMS/tizenclaw-1.0.0-1.x86_64.rpm /tmp/
 sdb push ~/GBS-ROOT/local/repos/tizen/x86_64/RPMS/tizenclaw-rag-1.0.0-1.x86_64.rpm /tmp/
@@ -74,9 +85,6 @@ sdb shell rpm -Uvh --force /tmp/tizenclaw-1.0.0-1.x86_64.rpm /tmp/tizenclaw-rag-
 # Start daemon
 sdb shell systemctl daemon-reload
 sdb shell systemctl restart tizenclaw
-
-# Access dashboard
-open http://<device-ip>:9090
 ```
 
 ---
