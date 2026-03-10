@@ -348,6 +348,13 @@ do_deploy() {
 
     log "Cleaning up /tmp/${rpm_basename}..."
     run sdb_shell rm -f "/tmp/${rpm_basename}"
+
+    # Register the webview app to the Tizen app framework if it was just installed
+    if [[ "${rpm_basename}" == *"tizenclaw-webview"* ]]; then
+      log "Preloading registry for org.tizen.tizenclew-webview..."
+      run sdb_shell tpk-backend --preload -y org.tizen.tizenclew-webview
+      ok "App registered to registry"
+    fi
   done
   ok "All RPMs processed"
 }
