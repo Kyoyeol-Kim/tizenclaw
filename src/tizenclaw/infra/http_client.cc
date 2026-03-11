@@ -15,12 +15,10 @@
  */
 #include "http_client.hh"
 
-#include <curl/curl.h>
-#include <unistd.h>
-
 #include <chrono>
 #include <thread>
 
+#include "../../libtizenclaw-llm-backend/inc/tizenclaw_llm_backend.h"
 #include "../../common/logging.hh"
 
 namespace tizenclaw {
@@ -30,21 +28,14 @@ struct WriteContext {
   std::function<void(const std::string&)> stream_cb;
 };
 
-static size_t WriteCallback(void* contents, size_t size, size_t nmemb,
-                            void* userp) {
-  size_t total_size = size * nmemb;
-  WriteContext* ctx = static_cast<WriteContext*>(userp);
-  std::string chunk((char*)contents, total_size);
-
-  if (ctx->body) {
+static void LlmWrapperChunkCb(const char* chunk, void* user_data) {
+  WriteContext* ctx = static_cast<WriteContext*>(user_data);
+  if (chunk && ctx->body) {
     ctx->body->append(chunk);
   }
-
-  if (ctx->stream_cb) {
+  if (chunk && ctx->stream_cb) {
     ctx->stream_cb(chunk);
   }
-
-  return total_size;
 }
 
 HttpResponse HttpClient::Post(
@@ -64,60 +55,44 @@ HttpResponse HttpClient::Post(
     result.body.clear();
     result.error.clear();
 
-    CURL* curl = curl_easy_init();
-    if (!curl) {
-      result.error = "curl_easy_init() failed";
+    tizenclaw_llm_curl_h curl = nullptr;
+    if (tizenclaw_llm_curl_create(&curl) != TIZENCLAW_ERROR_NONE) {
+      result.error = "tizenclaw_llm_curl_create() failed";
       continue;
     }
 
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    tizenclaw_llm_curl_set_url(curl, url.c_str());
 
-    struct curl_slist* header_list = nullptr;
     for (auto& [k, v] : hdrs) {
       std::string h = k + ": " + v;
-      header_list = curl_slist_append(header_list, h.c_str());
-    }
-    if (header_list) {
-      curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);
+      tizenclaw_llm_curl_add_header(curl, h.c_str());
     }
 
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_body.c_str());
+    tizenclaw_llm_curl_set_post_data(curl, json_body.c_str());
 
     WriteContext write_ctx;
     write_ctx.body = &result.body;
     write_ctx.stream_cb = stream_cb;
 
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &write_ctx);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
-    // Tizen system CA bundle path
-    const char* ca_paths[] = {
-        "/etc/ssl/certs/ca-certificates.crt", "/etc/ssl/ca-bundle.pem",
-        "/etc/pki/tls/certs/ca-bundle.crt",
-        "/usr/share/ca-certificates/ca-bundle.crt", nullptr};
-    for (int i = 0; ca_paths[i]; ++i) {
-      if (access(ca_paths[i], R_OK) == 0) {
-        curl_easy_setopt(curl, CURLOPT_CAINFO, ca_paths[i]);
-        break;
-      }
-    }
-    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, connect_timeout_sec);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, request_timeout_sec);
+    tizenclaw_llm_curl_set_write_callback(curl, LlmWrapperChunkCb, &write_ctx);
+    tizenclaw_llm_curl_set_timeout(curl, connect_timeout_sec, request_timeout_sec);
 
-    CURLcode res = curl_easy_perform(curl);
-    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &result.status_code);
-    if (header_list) {
-      curl_slist_free_all(header_list);
-    }
-    curl_easy_cleanup(curl);
+    int res = tizenclaw_llm_curl_perform(curl);
+    
+    long scode = 0;
+    tizenclaw_llm_curl_get_response_code(curl, &scode);
+    result.status_code = static_cast<int>(scode);
 
-    if (res != CURLE_OK) {
-      result.error = curl_easy_strerror(res);
+    if (res != TIZENCLAW_ERROR_NONE) {
+      const char* err = tizenclaw_llm_curl_get_error_message(curl);
+      result.error = err ? err : "Unknown error";
       LOG(ERROR) << "curl failed: " << result.error << " (" << (attempt + 1)
                  << "/" << max_retries << ")";
+      tizenclaw_llm_curl_destroy(curl);
       continue;
     }
+    
+    tizenclaw_llm_curl_destroy(curl);
 
     if (result.status_code == 429 || result.status_code >= 500) {
       result.error =
@@ -155,61 +130,44 @@ HttpResponse HttpClient::Get(const std::string& url,
     result.body.clear();
     result.error.clear();
 
-    CURL* curl = curl_easy_init();
-    if (!curl) {
-      result.error = "curl_easy_init() failed";
+    tizenclaw_llm_curl_h curl = nullptr;
+    if (tizenclaw_llm_curl_create(&curl) != TIZENCLAW_ERROR_NONE) {
+      result.error = "tizenclaw_llm_curl_create() failed";
       continue;
     }
 
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    tizenclaw_llm_curl_set_url(curl, url.c_str());
 
-    struct curl_slist* header_list = nullptr;
     for (auto& [k, v] : hdrs) {
       std::string h = k + ": " + v;
-      header_list = curl_slist_append(header_list, h.c_str());
-    }
-    if (header_list) {
-      curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);
+      tizenclaw_llm_curl_add_header(curl, h.c_str());
     }
 
-    // Default is GET, so no CURLOPT_POSTFIELDS needed
-    curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
+    tizenclaw_llm_curl_set_method_get(curl);
 
     WriteContext write_ctx;
     write_ctx.body = &result.body;
     write_ctx.stream_cb = nullptr;
 
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &write_ctx);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
+    tizenclaw_llm_curl_set_write_callback(curl, LlmWrapperChunkCb, &write_ctx);
+    tizenclaw_llm_curl_set_timeout(curl, connect_timeout_sec, request_timeout_sec);
 
-    const char* ca_paths[] = {
-        "/etc/ssl/certs/ca-certificates.crt", "/etc/ssl/ca-bundle.pem",
-        "/etc/pki/tls/certs/ca-bundle.crt",
-        "/usr/share/ca-certificates/ca-bundle.crt", nullptr};
-    for (int i = 0; ca_paths[i]; ++i) {
-      if (access(ca_paths[i], R_OK) == 0) {
-        curl_easy_setopt(curl, CURLOPT_CAINFO, ca_paths[i]);
-        break;
-      }
-    }
-    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, connect_timeout_sec);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, request_timeout_sec);
+    int res = tizenclaw_llm_curl_perform(curl);
+    
+    long scode = 0;
+    tizenclaw_llm_curl_get_response_code(curl, &scode);
+    result.status_code = static_cast<int>(scode);
 
-    CURLcode res = curl_easy_perform(curl);
-    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &result.status_code);
-    if (header_list) {
-      curl_slist_free_all(header_list);
-    }
-    curl_easy_cleanup(curl);
-
-    if (res != CURLE_OK) {
-      result.error = curl_easy_strerror(res);
+    if (res != TIZENCLAW_ERROR_NONE) {
+      const char* err = tizenclaw_llm_curl_get_error_message(curl);
+      result.error = err ? err : "Unknown error";
       LOG(ERROR) << "curl failed: " << result.error << " (" << (attempt + 1)
                  << "/" << max_retries << ")";
+      tizenclaw_llm_curl_destroy(curl);
       continue;
     }
+    
+    tizenclaw_llm_curl_destroy(curl);
 
     if (result.status_code == 429 || result.status_code >= 500) {
       result.error =
