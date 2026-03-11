@@ -107,6 +107,8 @@ typedef bool (*tizenclaw_llm_tool_cb)(tizenclaw_llm_tool_h tool,
  * @return @c 0 on success, otherwise a negative error value.
  * @retval #TIZENCLAW_ERROR_NONE Successful
  * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_tool_call_create(tizenclaw_llm_tool_call_h* tool_call);
 
@@ -115,6 +117,8 @@ int tizenclaw_llm_tool_call_create(tizenclaw_llm_tool_call_h* tool_call);
  * @since_tizen 10.0
  * @param[in] tool_call The tool call handle.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #TIZENCLAW_ERROR_NONE Successful
  * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
@@ -126,6 +130,8 @@ int tizenclaw_llm_tool_call_destroy(tizenclaw_llm_tool_call_h tool_call);
  * @param[in] tool_call The tool call handle.
  * @param[in] id The ID string.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_tool_call_set_id(tizenclaw_llm_tool_call_h tool_call,
                                    const char* id);
@@ -136,6 +142,8 @@ int tizenclaw_llm_tool_call_set_id(tizenclaw_llm_tool_call_h tool_call,
  * @param[in] tool_call The tool call handle.
  * @param[out] id The ID string.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_tool_call_get_id(tizenclaw_llm_tool_call_h tool_call,
                                    char** id);
@@ -146,6 +154,8 @@ int tizenclaw_llm_tool_call_get_id(tizenclaw_llm_tool_call_h tool_call,
  * @param[in] tool_call The tool call handle.
  * @param[in] name The name string.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_tool_call_set_name(tizenclaw_llm_tool_call_h tool_call,
                                      const char* name);
@@ -156,6 +166,8 @@ int tizenclaw_llm_tool_call_set_name(tizenclaw_llm_tool_call_h tool_call,
  * @param[in] tool_call The tool call handle.
  * @param[out] name The name string.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_tool_call_get_name(tizenclaw_llm_tool_call_h tool_call,
                                      char** name);
@@ -166,6 +178,8 @@ int tizenclaw_llm_tool_call_get_name(tizenclaw_llm_tool_call_h tool_call,
  * @param[in] tool_call The tool call handle.
  * @param[in] args_json The arguments JSON string.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_tool_call_set_args_json(tizenclaw_llm_tool_call_h tool_call,
                                           const char* args_json);
@@ -176,6 +190,8 @@ int tizenclaw_llm_tool_call_set_args_json(tizenclaw_llm_tool_call_h tool_call,
  * @param[in] tool_call The tool call handle.
  * @param[out] args_json The arguments JSON string.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_tool_call_get_args_json(tizenclaw_llm_tool_call_h tool_call,
                                           char** args_json);
@@ -185,6 +201,8 @@ int tizenclaw_llm_tool_call_get_args_json(tizenclaw_llm_tool_call_h tool_call,
  * @since_tizen 10.0
  * @param[out] message The message handle.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_message_create(tizenclaw_llm_message_h* message);
 
@@ -193,6 +211,8 @@ int tizenclaw_llm_message_create(tizenclaw_llm_message_h* message);
  * @since_tizen 10.0
  * @param[in] message The message handle.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_message_destroy(tizenclaw_llm_message_h message);
 
@@ -202,6 +222,8 @@ int tizenclaw_llm_message_destroy(tizenclaw_llm_message_h message);
  * @param[in] message The message handle.
  * @param[in] role The role string.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_message_set_role(tizenclaw_llm_message_h message,
                                    const char* role);
@@ -212,6 +234,8 @@ int tizenclaw_llm_message_set_role(tizenclaw_llm_message_h message,
  * @param[in] message The message handle.
  * @param[out] role The role string.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_message_get_role(tizenclaw_llm_message_h message,
                                    char** role);
@@ -222,6 +246,8 @@ int tizenclaw_llm_message_get_role(tizenclaw_llm_message_h message,
  * @param[in] message The message handle.
  * @param[in] text The text string.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_message_set_text(tizenclaw_llm_message_h message,
                                    const char* text);
@@ -232,6 +258,8 @@ int tizenclaw_llm_message_set_text(tizenclaw_llm_message_h message,
  * @param[in] message The message handle.
  * @param[out] text The text string.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_message_get_text(tizenclaw_llm_message_h message,
                                    char** text);
@@ -242,6 +270,8 @@ int tizenclaw_llm_message_get_text(tizenclaw_llm_message_h message,
  * @param[in] message The message handle.
  * @param[in] tool_call The tool call handle.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_message_add_tool_call(tizenclaw_llm_message_h message,
                                         tizenclaw_llm_tool_call_h tool_call);
@@ -253,6 +283,8 @@ int tizenclaw_llm_message_add_tool_call(tizenclaw_llm_message_h message,
  * @param[in] callback The callback function.
  * @param[in] user_data User data for the callback.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_message_foreach_tool_calls(
     tizenclaw_llm_message_h message, tizenclaw_llm_tool_call_cb callback,
@@ -264,6 +296,8 @@ int tizenclaw_llm_message_foreach_tool_calls(
  * @param[in] message The message handle.
  * @param[in] tool_name The tool name string.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_message_set_tool_name(tizenclaw_llm_message_h message,
                                         const char* tool_name);
@@ -274,6 +308,8 @@ int tizenclaw_llm_message_set_tool_name(tizenclaw_llm_message_h message,
  * @param[in] message The message handle.
  * @param[out] tool_name The tool name string.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_message_get_tool_name(tizenclaw_llm_message_h message,
                                         char** tool_name);
@@ -284,6 +320,8 @@ int tizenclaw_llm_message_get_tool_name(tizenclaw_llm_message_h message,
  * @param[in] message The message handle.
  * @param[in] tool_call_id The tool call ID string.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_message_set_tool_call_id(tizenclaw_llm_message_h message,
                                            const char* tool_call_id);
@@ -294,6 +332,8 @@ int tizenclaw_llm_message_set_tool_call_id(tizenclaw_llm_message_h message,
  * @param[in] message The message handle.
  * @param[out] tool_call_id The tool call ID string.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_message_get_tool_call_id(tizenclaw_llm_message_h message,
                                            char** tool_call_id);
@@ -304,6 +344,8 @@ int tizenclaw_llm_message_get_tool_call_id(tizenclaw_llm_message_h message,
  * @param[in] message The message handle.
  * @param[in] tool_result_json The JSON string.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_message_set_tool_result_json(tizenclaw_llm_message_h message,
                                                const char* tool_result_json);
@@ -314,6 +356,8 @@ int tizenclaw_llm_message_set_tool_result_json(tizenclaw_llm_message_h message,
  * @param[in] message The message handle.
  * @param[out] tool_result_json The JSON string.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_message_get_tool_result_json(tizenclaw_llm_message_h message,
                                                char** tool_result_json);
@@ -323,6 +367,8 @@ int tizenclaw_llm_message_get_tool_result_json(tizenclaw_llm_message_h message,
  * @since_tizen 10.0
  * @param[out] messages The messages list handle.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_messages_create(tizenclaw_llm_messages_h* messages);
 
@@ -331,6 +377,8 @@ int tizenclaw_llm_messages_create(tizenclaw_llm_messages_h* messages);
  * @since_tizen 10.0
  * @param[in] messages The messages list handle.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_messages_destroy(tizenclaw_llm_messages_h messages);
 
@@ -340,6 +388,8 @@ int tizenclaw_llm_messages_destroy(tizenclaw_llm_messages_h messages);
  * @param[in] messages The messages list handle.
  * @param[in] message The message handle.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_messages_add(tizenclaw_llm_messages_h messages,
                                tizenclaw_llm_message_h message);
@@ -351,6 +401,8 @@ int tizenclaw_llm_messages_add(tizenclaw_llm_messages_h messages,
  * @param[in] callback The callback function.
  * @param[in] user_data User data for the callback.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_messages_foreach(tizenclaw_llm_messages_h messages,
                                    tizenclaw_llm_message_cb callback,
@@ -361,6 +413,8 @@ int tizenclaw_llm_messages_foreach(tizenclaw_llm_messages_h messages,
  * @since_tizen 10.0
  * @param[out] tool The tool handle.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_tool_create(tizenclaw_llm_tool_h* tool);
 
@@ -369,6 +423,8 @@ int tizenclaw_llm_tool_create(tizenclaw_llm_tool_h* tool);
  * @since_tizen 10.0
  * @param[in] tool The tool handle.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_tool_destroy(tizenclaw_llm_tool_h tool);
 
@@ -378,6 +434,8 @@ int tizenclaw_llm_tool_destroy(tizenclaw_llm_tool_h tool);
  * @param[in] tool The tool handle.
  * @param[in] name The name string.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_tool_set_name(tizenclaw_llm_tool_h tool, const char* name);
 
@@ -387,6 +445,8 @@ int tizenclaw_llm_tool_set_name(tizenclaw_llm_tool_h tool, const char* name);
  * @param[in] tool The tool handle.
  * @param[out] name The name string.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_tool_get_name(tizenclaw_llm_tool_h tool, char** name);
 
@@ -396,6 +456,8 @@ int tizenclaw_llm_tool_get_name(tizenclaw_llm_tool_h tool, char** name);
  * @param[in] tool The tool handle.
  * @param[in] description The description string.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_tool_set_description(tizenclaw_llm_tool_h tool,
                                        const char* description);
@@ -406,6 +468,8 @@ int tizenclaw_llm_tool_set_description(tizenclaw_llm_tool_h tool,
  * @param[in] tool The tool handle.
  * @param[out] description The description string.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_tool_get_description(tizenclaw_llm_tool_h tool,
                                        char** description);
@@ -416,6 +480,8 @@ int tizenclaw_llm_tool_get_description(tizenclaw_llm_tool_h tool,
  * @param[in] tool The tool handle.
  * @param[in] parameters_json The parameters JSON string.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_tool_set_parameters_json(tizenclaw_llm_tool_h tool,
                                            const char* parameters_json);
@@ -426,6 +492,8 @@ int tizenclaw_llm_tool_set_parameters_json(tizenclaw_llm_tool_h tool,
  * @param[in] tool The tool handle.
  * @param[out] parameters_json The parameters JSON string.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_tool_get_parameters_json(tizenclaw_llm_tool_h tool,
                                            char** parameters_json);
@@ -435,6 +503,8 @@ int tizenclaw_llm_tool_get_parameters_json(tizenclaw_llm_tool_h tool,
  * @since_tizen 10.0
  * @param[out] tools The tools list handle.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_tools_create(tizenclaw_llm_tools_h* tools);
 
@@ -443,6 +513,8 @@ int tizenclaw_llm_tools_create(tizenclaw_llm_tools_h* tools);
  * @since_tizen 10.0
  * @param[in] tools The tools list handle.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_tools_destroy(tizenclaw_llm_tools_h tools);
 
@@ -452,6 +524,8 @@ int tizenclaw_llm_tools_destroy(tizenclaw_llm_tools_h tools);
  * @param[in] tools The tools list handle.
  * @param[in] tool The tool handle.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_tools_add(tizenclaw_llm_tools_h tools,
                             tizenclaw_llm_tool_h tool);
@@ -463,6 +537,8 @@ int tizenclaw_llm_tools_add(tizenclaw_llm_tools_h tools,
  * @param[in] callback The callback function.
  * @param[in] user_data User data for the callback.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_tools_foreach(tizenclaw_llm_tools_h tools,
                                 tizenclaw_llm_tool_cb callback,
@@ -473,6 +549,8 @@ int tizenclaw_llm_tools_foreach(tizenclaw_llm_tools_h tools,
  * @since_tizen 10.0
  * @param[out] response The response handle.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_response_create(tizenclaw_llm_response_h* response);
 
@@ -481,6 +559,8 @@ int tizenclaw_llm_response_create(tizenclaw_llm_response_h* response);
  * @since_tizen 10.0
  * @param[in] response The response handle.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_response_destroy(tizenclaw_llm_response_h response);
 
@@ -490,6 +570,8 @@ int tizenclaw_llm_response_destroy(tizenclaw_llm_response_h response);
  * @param[in] response The response handle.
  * @param[in] success The success flag.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_response_set_success(tizenclaw_llm_response_h response,
                                        bool success);
@@ -500,6 +582,8 @@ int tizenclaw_llm_response_set_success(tizenclaw_llm_response_h response,
  * @param[in] response The response handle.
  * @param[out] success The success flag.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_response_is_success(tizenclaw_llm_response_h response,
                                       bool* success);
@@ -510,6 +594,8 @@ int tizenclaw_llm_response_is_success(tizenclaw_llm_response_h response,
  * @param[in] response The response handle.
  * @param[in] text The text string.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_response_set_text(tizenclaw_llm_response_h response,
                                     const char* text);
@@ -520,6 +606,8 @@ int tizenclaw_llm_response_set_text(tizenclaw_llm_response_h response,
  * @param[in] response The response handle.
  * @param[out] text The text string.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_response_get_text(tizenclaw_llm_response_h response,
                                     char** text);
@@ -530,6 +618,8 @@ int tizenclaw_llm_response_get_text(tizenclaw_llm_response_h response,
  * @param[in] response The response handle.
  * @param[in] error_message The error message string.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_response_set_error_message(tizenclaw_llm_response_h response,
                                              const char* error_message);
@@ -540,6 +630,8 @@ int tizenclaw_llm_response_set_error_message(tizenclaw_llm_response_h response,
  * @param[in] response The response handle.
  * @param[out] error_message The error message string.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_response_get_error_message(tizenclaw_llm_response_h response,
                                              char** error_message);
@@ -550,6 +642,8 @@ int tizenclaw_llm_response_get_error_message(tizenclaw_llm_response_h response,
  * @param[in] response The response handle.
  * @param[in] tool_call The tool call handle.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_response_add_llm_tool_call(
     tizenclaw_llm_response_h response, tizenclaw_llm_tool_call_h tool_call);
@@ -561,6 +655,8 @@ int tizenclaw_llm_response_add_llm_tool_call(
  * @param[in] callback The callback function.
  * @param[in] user_data User data for the callback.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_response_foreach_llm_tool_calls(
     tizenclaw_llm_response_h response, tizenclaw_llm_tool_call_cb callback,
@@ -572,6 +668,8 @@ int tizenclaw_llm_response_foreach_llm_tool_calls(
  * @param[in] response The response handle.
  * @param[in] prompt_tokens The prompt tokens count.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_response_set_prompt_tokens(tizenclaw_llm_response_h response,
                                              int prompt_tokens);
@@ -582,6 +680,8 @@ int tizenclaw_llm_response_set_prompt_tokens(tizenclaw_llm_response_h response,
  * @param[in] response The response handle.
  * @param[out] prompt_tokens The prompt tokens count.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_response_get_prompt_tokens(tizenclaw_llm_response_h response,
                                              int* prompt_tokens);
@@ -592,6 +692,8 @@ int tizenclaw_llm_response_get_prompt_tokens(tizenclaw_llm_response_h response,
  * @param[in] response The response handle.
  * @param[in] completion_tokens The completion tokens count.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_response_set_completion_tokens(
     tizenclaw_llm_response_h response, int completion_tokens);
@@ -602,6 +704,8 @@ int tizenclaw_llm_response_set_completion_tokens(
  * @param[in] response The response handle.
  * @param[out] completion_tokens The completion tokens count.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_response_get_completion_tokens(
     tizenclaw_llm_response_h response, int* completion_tokens);
@@ -612,6 +716,8 @@ int tizenclaw_llm_response_get_completion_tokens(
  * @param[in] response The response handle.
  * @param[in] total_tokens The total tokens count.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_response_set_total_tokens(tizenclaw_llm_response_h response,
                                             int total_tokens);
@@ -622,6 +728,8 @@ int tizenclaw_llm_response_set_total_tokens(tizenclaw_llm_response_h response,
  * @param[in] response The response handle.
  * @param[out] total_tokens The total tokens count.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_response_get_total_tokens(tizenclaw_llm_response_h response,
                                             int* total_tokens);
@@ -632,6 +740,8 @@ int tizenclaw_llm_response_get_total_tokens(tizenclaw_llm_response_h response,
  * @param[in] response The response handle.
  * @param[in] http_status The HTTP status code.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_response_set_http_status(tizenclaw_llm_response_h response,
                                            int http_status);
@@ -642,6 +752,8 @@ int tizenclaw_llm_response_set_http_status(tizenclaw_llm_response_h response,
  * @param[in] response The response handle.
  * @param[out] http_status The HTTP status code.
  * @return @c 0 on success, otherwise a negative error value.
+ * @retval #TIZENCLAW_ERROR_NONE Successful
+ * @retval #TIZENCLAW_ERROR_INVALID_PARAMETER Invalid parameter
  */
 int tizenclaw_llm_response_get_http_status(tizenclaw_llm_response_h response,
                                            int* http_status);
