@@ -125,8 +125,8 @@ The central orchestration engine implementing the **Agentic Loop**:
 - **Streaming Responses**: Chunked IPC delivery (`stream_chunk` / `stream_end`) with progressive Telegram message editing
 - **Context Compaction**: When exceeding 15 turns, oldest 10 turns are summarized via LLM into 1 compressed turn
 - **Edge Memory Management**: The `MaintenanceLoop` aggressively monitors idle time, calling `malloc_trim(0)` and `sqlite3_release_memory` after 5 minutes of inactivity to reclaim PSS memory.
-- **Multi-Session**: Concurrent agent sessions with per-session system prompts and history isolation
-- **Model Fallback**: Sequential retry across `fallback_backends` with rate-limit backoff
+- **Multi-Session**: Concurrent agent sessions with per-session system prompt and history isolation
+- **Unified Backend Selection**: `SwitchToBestBackend()` algorithm dynamically selects the active backend based on a unified priority queue (`Plugin` > `active_backend` > `fallback_backends`).
 - **Built-in Tools**: `execute_code`, `file_manager`, `create_task`, `list_tasks`, `cancel_task`, `create_session`, `list_sessions`, `send_to_session`, `ingest_document`, `search_knowledge`, `execute_action`, `action_<name>` (per-action tools)
 
 ### 3.3 LLM Backend Layer
@@ -142,7 +142,8 @@ Provider-agnostic abstraction via `LlmBackend` interface:
 | Ollama | `ollama_backend.cc` | `llama3` | ✅ | ✅ |
 
 - **Factory Pattern**: `LlmBackendFactory::Create()` instantiation
-- **Runtime Switching**: `active_backend` field in `llm_config.json`
+- **Unified Priority Switching**: Both `active_backend` and the ordered array of `fallback_backends` are assigned a baseline priority of `1`. 
+- **Dynamic Plugins**: TizenClaw LLM Plugin backends installed via RPM specify their own priority (e.g., `10`). If a plugin is installed and running, `SwitchToBestBackend()` automatically cascades up to route traffic to the plugin instance instead. When removed, traffic seamlessly falls back to the priority `1` built-ins.
 - **System Prompt**: 4-level fallback (config inline → file path → default file → hardcoded), `{{AVAILABLE_TOOLS}}` dynamic placeholder
 
 ### 3.4 Container Engine (`container_engine.cc`)

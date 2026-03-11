@@ -204,8 +204,8 @@ tizenclaw/
 
 - **추상화**: `LlmBackend` 인터페이스 → `LlmBackendFactory::Create()` 팩토리
 - **공통 구조체**: `LlmMessage`, `LlmResponse`, `LlmToolCall`, `LlmToolDecl`
-- **런타임 전환**: `llm_config.json`의 `active_backend` 필드
-- **모델 폴백**: `fallback_backends` 배열로 순차 재시도 + rate-limit 백오프
+- **런타임 전환**: TizenClaw LLM Plugin을 우선하며, `active_backend` 및 `fallback_backends`로 안전하게 폴백하는 단일 통합 큐
+- **모델 폴백**: 설정된 우선순위(기본 1)에 따라 후보군을 동적으로 정렬하는 견고한 폴백 시스템 지원
 - **시스템 프롬프트**: 4단계 fallback + `{{AVAILABLE_TOOLS}}` 동적 placeholder
 
 ### 3.3 통신 & IPC

@@ -468,8 +468,7 @@ timeline
 | Item | Details |
 |------|---------|
 | **Gap** | LLM API failure returns error — no retry with alternatives |
-| **Ref** | OpenClaw: `model-fallback.ts` (18K LOC) |
-| **Impl** | `fallback_backends` array in `llm_config.json`, `TryFallbackBackends()` sequential retry |
+| **Impl** | `SwitchToBestBackend()` algorithm with united priority queue for RPM Plugins, Active, and Fallback array. |
 
 **Implementation:**
 - `fallback_backends` array in `llm_config.json` for sequential LLM backend retry

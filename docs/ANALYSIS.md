@@ -204,8 +204,8 @@ tizenclaw/
 
 - **Abstraction**: `LlmBackend` interface → `LlmBackendFactory::Create()` factory
 - **Shared structs**: `LlmMessage`, `LlmResponse`, `LlmToolCall`, `LlmToolDecl`
-- **Runtime switching**: `active_backend` field in `llm_config.json`
-- **Model fallback**: `fallback_backends` array for sequential retry with rate-limit backoff
+- **Runtime switching**: Unity queue prioritizing TizenClaw LLM Plugins, falling back to `active_backend` and `fallback_backends`.
+- **Model fallback**: Unified selection queue dynamically sorts candidates by configured priority (1 by default) for robust fallback.
 - **System prompt**: 4-level fallback with `{{AVAILABLE_TOOLS}}` dynamic placeholder
 
 ### 3.3 Communication & IPC

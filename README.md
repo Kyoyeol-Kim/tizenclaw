@@ -45,7 +45,7 @@ TizenClaw is part of the **Claw** family of AI agent runtimes, each targeting di
 - 🔒 **OCI Container Isolation** — crun-based seccomp + namespace, finer syscall control than app-level sandboxing
 - 📱 **Direct Tizen C-API** — ctypes wrappers for device hardware (battery, Wi-Fi, BT, display, volume, sensors, notifications, alarm, app management)
 - 🎯 **Tizen Action Framework** — Native integration with per-action LLM tools, MD schema caching, event-driven updates
-- 🤖 **5 LLM Backends** — Gemini, OpenAI, Anthropic, xAI (Grok), Ollama with automatic fallback
+- 🤖 **Dynamic LLM Backends** — Built-in support for Gemini, OpenAI, Anthropic, xAI, Ollama with unified priority-based switching, seamlessly cascading between active, fallbacks, and dynamically loaded RPM Plugins.
 - 📦 **Lightweight Deployment** — systemd + RPM, standalone device execution without Node.js/Docker
 - 🔧 **Native MCP Server** — C++ MCP server integrated into daemon, Claude Desktop controls Tizen via sdb
 - 📊 **Health Monitoring** — Built-in Prometheus-style metrics endpoint + live dashboard panel
@@ -113,7 +113,7 @@ sdb shell systemctl restart tizenclaw
 
 - **Standardized IPC (JSON-RPC 2.0)** — Communicates with the `tizenclaw-cli` and external clients over Unix Domain Sockets using standard JSON-RPC 2.0.
 - **Aggressive Edge Memory Management** — Monitors daemon idle states locally and dynamically flushes SQLite caches (`sqlite3_release_memory(50MB)`) while aggressively reclaiming heap space back to Tizen OS (`malloc_trim(0)`) utilizing PSS profiling.
-- **Multi-LLM Backend** — Supports Gemini, OpenAI, Anthropic, xAI (Grok), and Ollama via a unified `LlmBackend` interface with automatic model fallback.
+- **Unified LLM Priority Routing** — Supports Gemini, OpenAI, Anthropic, xAI, Ollama, and runtime RPM Plugins via a unified queue, automatically falling back based strictly on assigned priority values (`1` baseline).
 - **7 Communication Channels** — Telegram, Slack, Discord, MCP (Claude Desktop), Webhook, Voice (TTS/STT), and Web Dashboard — all managed through a `Channel` abstraction.
 - **Function Calling / Tool Use** — The LLM autonomously invokes device skills through an iterative Agentic Loop with streaming responses.
 - **Tizen Action Framework** — Native device actions via `ActionBridge` with per-action typed LLM tools, MD schema caching, and live updates via `action_event_cb`.

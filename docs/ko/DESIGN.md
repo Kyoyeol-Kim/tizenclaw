@@ -126,7 +126,7 @@ graph TB
 - **컨텍스트 압축**: 15턴 초과 시 가장 오래된 10턴을 LLM으로 요약하여 1턴으로 압축
 - **엣지 메모리 최적화**: `MaintenanceLoop`가 유휴 시간을 적극 모니터링하여, 5분 비활성 시 `malloc_trim(0)` 및 `sqlite3_release_memory`를 호출해 PSS 메모리를 회수합니다.
 - **멀티 세션**: 세션별 시스템 프롬프트와 히스토리 격리를 통한 동시 에이전트 세션
-- **모델 폴백**: `fallback_backends` 순차 재시도 + rate-limit 백오프
+- **통합 백엔드 선택**: `SwitchToBestBackend()` 알고리즘을 통해 단일 우선순위 큐(`Plugin` > `active_backend` > `fallback_backends`)를 기반으로 동적으로 활성 백엔드를 선택합니다.
 - **내장 도구**: `execute_code`, `file_manager`, `create_task`, `list_tasks`, `cancel_task`, `create_session`, `list_sessions`, `send_to_session`, `ingest_document`, `search_knowledge`, `execute_action`, `action_<name>` (Per-action 도구)
 
 ### 3.3 LLM 백엔드 계층
@@ -142,7 +142,8 @@ graph TB
 | Ollama | `ollama_backend.cc` | `llama3` | ✅ | ✅ |
 
 - **팩토리 패턴**: `LlmBackendFactory::Create()` 인스턴스 생성
-- **런타임 전환**: `llm_config.json`의 `active_backend` 필드
+- **통합 우선순위 전환**: `active_backend`와 `fallback_backends` 배열 모두 기본 우선순위인 `1`을 가집니다.
+- **동적 플러그인**: RPM을 통해 설치된 TizenClaw LLM Plugin 백엔드는 자체 우선순위(예: `10`)를 명시합니다. 플러그인이 설치되어 실행 중일 경우, `SwitchToBestBackend()`는 트래픽을 해당 플러그인 인스턴스로 라우팅합니다. 삭제 시 우선순위 `1`을 가진 기본 백엔드로 원활하게 폴백됩니다.
 - **시스템 프롬프트**: 4단계 fallback (config inline → 파일 경로 → 기본 파일 → 하드코딩), `{{AVAILABLE_TOOLS}}` 동적 placeholder
 
 ### 3.4 컨테이너 엔진 (`container_engine.cc`)
