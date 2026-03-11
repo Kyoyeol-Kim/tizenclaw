@@ -83,17 +83,18 @@ class PluginAdapter : public LlmBackend {
 std::unique_ptr<LlmBackend>
 LlmBackendFactory::Create(
     const std::string& name) {
-  if (auto it = kBackendRegistry.find(name);
-      it != kBackendRegistry.end()) {
-    return it->second();
-  }
 
-  // Check plugins
+  // Check plugins first so they can override built-in backends
   auto plugins = PluginManager::GetInstance().GetLlmBackends();
   for (auto& p : plugins) {
     if (p->GetName() == name) {
       return std::make_unique<PluginAdapter>(p);
     }
+  }
+
+  if (auto it = kBackendRegistry.find(name);
+      it != kBackendRegistry.end()) {
+    return it->second();
   }
 
   LOG(ERROR) << "Unknown LLM backend: " << name;

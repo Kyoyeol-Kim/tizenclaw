@@ -121,6 +121,11 @@ void TizenClawDaemon::Quit() {
 
 void TizenClawDaemon::OnCreate() {
     LOG(INFO) << "TizenClaw Daemon OnCreate";
+    
+    // Initialize Plugin Manager before AgentCore
+    // so AgentCore can find installed plugins during backend creation
+    PluginManager::GetInstance().Initialize();
+
     agent_ = std::make_unique<AgentCore>();
     if (!agent_->Initialize()) {
         LOG(ERROR)
@@ -131,9 +136,6 @@ void TizenClawDaemon::OnCreate() {
     scheduler_ = std::make_unique<TaskScheduler>();
     agent_->SetScheduler(scheduler_.get());
     scheduler_->Start(agent_.get());
-
-    // Initialize Plugin Manager
-    PluginManager::GetInstance().Initialize();
 
     // Register channels
     auto* a = agent_.get();
@@ -637,6 +639,7 @@ int main(int argc, char *argv[]) {
     if (argc > 1 &&
         std::string(argv[1]) == "--mcp-stdio") {
         LOG(INFO) << "Starting MCP stdio mode...";
+        PluginManager::GetInstance().Initialize();
         AgentCore agent;
         if (!agent.Initialize()) {
             LOG(ERROR) << "Failed to initialize "
@@ -646,6 +649,7 @@ int main(int argc, char *argv[]) {
         McpServer mcp(&agent);
         mcp.RunStdio();
         agent.Shutdown();
+        PluginManager::GetInstance().Shutdown();
         return 0;
     }
 
