@@ -465,7 +465,7 @@ timeline
 | 항목 | 내용 |
 |------|------|
 | **갭** | LLM API 실패 시 에러 반환 — 대안 백엔드 미시도 |
-| **구현** | RPM 플러그인, 활성 백엔드 및 폴백 배열을 단일 큐로 처리하는 `SwitchToBestBackend()` 우선순위 통합 알고리즘 |
+| **구현** | RPK 플러그인, 활성 백엔드 및 폴백 배열을 단일 큐로 처리하는 `SwitchToBestBackend()` 우선순위 통합 알고리즘 |
 
 **구현 내용:**
 - `llm_config.json`의 `fallback_backends` 배열로 순차 LLM 백엔드 재시도

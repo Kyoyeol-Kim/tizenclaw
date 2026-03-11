@@ -143,7 +143,7 @@ Provider-agnostic abstraction via `LlmBackend` interface:
 
 - **Factory Pattern**: `LlmBackendFactory::Create()` instantiation
 - **Unified Priority Switching**: Both `active_backend` and the ordered array of `fallback_backends` are assigned a baseline priority of `1`. 
-- **Dynamic Plugins**: TizenClaw LLM Plugin backends installed via RPM specify their own priority (e.g., `10`). If a plugin is installed and running, `SwitchToBestBackend()` automatically cascades up to route traffic to the plugin instance instead. When removed, traffic seamlessly falls back to the priority `1` built-ins.
+- **Dynamic Plugins**: TizenClaw LLM Plugin backends installed via RPK specify their own priority (e.g., `10`). If a plugin is installed and running, `SwitchToBestBackend()` automatically cascades up to route traffic to the plugin instance instead. When removed, traffic seamlessly falls back to the priority `1` built-ins.
 - **System Prompt**: 4-level fallback (config inline → file path → default file → hardcoded), `{{AVAILABLE_TOOLS}}` dynamic placeholder
 
 ### 3.4 Container Engine (`container_engine.cc`)

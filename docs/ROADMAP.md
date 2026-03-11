@@ -468,7 +468,7 @@ timeline
 | Item | Details |
 |------|---------|
 | **Gap** | LLM API failure returns error — no retry with alternatives |
-| **Impl** | `SwitchToBestBackend()` algorithm with united priority queue for RPM Plugins, Active, and Fallback array. |
+| **Impl** | `SwitchToBestBackend()` algorithm with united priority queue for RPK Plugins, Active, and Fallback array. |
 
 **Implementation:**
 - `fallback_backends` array in `llm_config.json` for sequential LLM backend retry

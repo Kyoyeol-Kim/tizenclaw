@@ -143,7 +143,7 @@ graph TB
 
 - **팩토리 패턴**: `LlmBackendFactory::Create()` 인스턴스 생성
 - **통합 우선순위 전환**: `active_backend`와 `fallback_backends` 배열 모두 기본 우선순위인 `1`을 가집니다.
-- **동적 플러그인**: RPM을 통해 설치된 TizenClaw LLM Plugin 백엔드는 자체 우선순위(예: `10`)를 명시합니다. 플러그인이 설치되어 실행 중일 경우, `SwitchToBestBackend()`는 트래픽을 해당 플러그인 인스턴스로 라우팅합니다. 삭제 시 우선순위 `1`을 가진 기본 백엔드로 원활하게 폴백됩니다.
+- **동적 플러그인**: RPK를 통해 설치된 TizenClaw LLM Plugin 백엔드는 자체 우선순위(예: `10`)를 명시합니다. 플러그인이 설치되어 실행 중일 경우, `SwitchToBestBackend()`는 트래픽을 해당 플러그인 인스턴스로 라우팅합니다. 삭제 시 우선순위 `1`을 가진 기본 백엔드로 원활하게 폴백됩니다.
 - **시스템 프롬프트**: 4단계 fallback (config inline → 파일 경로 → 기본 파일 → 하드코딩), `{{AVAILABLE_TOOLS}}` 동적 placeholder
 
 ### 3.4 컨테이너 엔진 (`container_engine.cc`)
