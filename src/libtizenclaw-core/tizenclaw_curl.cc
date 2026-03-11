@@ -22,44 +22,46 @@
 #include <string.h>
 #include <dlog.h>
 
-#define LOG_TAG "TIZENCLAW_CURL"
+namespace {
 
-struct tizenclaw_curl_s {
-  CURL* curl;
-  struct curl_slist* headers;
-  char errbuf[CURL_ERROR_SIZE];
-  long response_code;
-  tizenclaw_curl_chunk_cb user_cb;
-  void* user_data;
+constexpr const char kLogTag[] = "TIZENCLAW_CURL";
 
-  tizenclaw_curl_s() {
-    curl = nullptr;
-    headers = nullptr;
-    memset(errbuf, 0, sizeof(errbuf));
-    response_code = 0;
-    user_cb = nullptr;
-    user_data = nullptr;
+struct TizenClawCurl {
+  CURL* curl_;
+  struct curl_slist* headers_;
+  char errbuf_[CURL_ERROR_SIZE];
+  long response_code_;
+  tizenclaw_curl_chunk_cb user_cb_;
+  void* user_data_;
+
+  TizenClawCurl() {
+    curl_ = nullptr;
+    headers_ = nullptr;
+    memset(errbuf_, 0, sizeof(errbuf_));
+    response_code_ = 0;
+    user_cb_ = nullptr;
+    user_data_ = nullptr;
   }
 
-  ~tizenclaw_curl_s() {
-    if (headers) {
-      curl_slist_free_all(headers);
+  ~TizenClawCurl() {
+    if (headers_) {
+      curl_slist_free_all(headers_);
     }
-    if (curl) {
-      curl_easy_cleanup(curl);
+    if (curl_) {
+      curl_easy_cleanup(curl_);
     }
   }
 
   static size_t WriteCallback(void* contents, size_t size, size_t nmemb,
                               void* userp) {
     size_t total_size = size * nmemb;
-    tizenclaw_curl_s* ctx = static_cast<tizenclaw_curl_s*>(userp);
+    TizenClawCurl* ctx = static_cast<TizenClawCurl*>(userp);
 
-    if (ctx && ctx->user_cb) {
+    if (ctx && ctx->user_cb_) {
       char* null_terminated = new char[total_size + 1];
       memcpy(null_terminated, contents, total_size);
       null_terminated[total_size] = '\0';
-      ctx->user_cb(null_terminated, ctx->user_data);
+      ctx->user_cb_(null_terminated, ctx->user_data_);
       delete[] null_terminated;
     }
 
@@ -67,19 +69,21 @@ struct tizenclaw_curl_s {
   }
 };
 
+}  // namespace
+
 int tizenclaw_curl_create(tizenclaw_curl_h* curl) {
   if (!curl) return TIZENCLAW_ERROR_INVALID_PARAMETER;
 
-  tizenclaw_curl_h instance = new tizenclaw_curl_s();
-  instance->curl = curl_easy_init();
-  if (!instance->curl) {
+  TizenClawCurl* instance = new TizenClawCurl();
+  instance->curl_ = curl_easy_init();
+  if (!instance->curl_) {
     delete instance;
     return TIZENCLAW_ERROR_IO_ERROR;
   }
 
-  curl_easy_setopt(instance->curl, CURLOPT_ERRORBUFFER, instance->errbuf);
-  curl_easy_setopt(instance->curl, CURLOPT_SSL_VERIFYPEER, 1L);
-  curl_easy_setopt(instance->curl, CURLOPT_SSL_VERIFYHOST, 2L);
+  curl_easy_setopt(instance->curl_, CURLOPT_ERRORBUFFER, instance->errbuf_);
+  curl_easy_setopt(instance->curl_, CURLOPT_SSL_VERIFYPEER, 1L);
+  curl_easy_setopt(instance->curl_, CURLOPT_SSL_VERIFYHOST, 2L);
 
   const char* ca_paths[] = {
       "/etc/ssl/certs/ca-certificates.crt", "/etc/ssl/ca-bundle.pem",
@@ -88,7 +92,7 @@ int tizenclaw_curl_create(tizenclaw_curl_h* curl) {
 
   for (int i = 0; ca_paths[i]; ++i) {
     if (access(ca_paths[i], R_OK) == 0) {
-      curl_easy_setopt(instance->curl, CURLOPT_CAINFO, ca_paths[i]);
+      curl_easy_setopt(instance->curl_, CURLOPT_CAINFO, ca_paths[i]);
       break;
     }
   }
@@ -99,66 +103,74 @@ int tizenclaw_curl_create(tizenclaw_curl_h* curl) {
 
 int tizenclaw_curl_destroy(tizenclaw_curl_h curl) {
   if (!curl) return TIZENCLAW_ERROR_INVALID_PARAMETER;
-  delete curl;
+  TizenClawCurl* instance = static_cast<TizenClawCurl*>(curl);
+  delete instance;
   return TIZENCLAW_ERROR_NONE;
 }
 
 int tizenclaw_curl_set_url(tizenclaw_curl_h curl, const char* url) {
   if (!curl || !url) return TIZENCLAW_ERROR_INVALID_PARAMETER;
-  CURLcode res = curl_easy_setopt(curl->curl, CURLOPT_URL, url);
+  TizenClawCurl* instance = static_cast<TizenClawCurl*>(curl);
+  CURLcode res = curl_easy_setopt(instance->curl_, CURLOPT_URL, url);
   return (res == CURLE_OK) ? TIZENCLAW_ERROR_NONE : TIZENCLAW_ERROR_IO_ERROR;
 }
 
 int tizenclaw_curl_add_header(tizenclaw_curl_h curl, const char* header) {
   if (!curl || !header) return TIZENCLAW_ERROR_INVALID_PARAMETER;
-  curl->headers = curl_slist_append(curl->headers, header);
+  TizenClawCurl* instance = static_cast<TizenClawCurl*>(curl);
+  instance->headers_ = curl_slist_append(instance->headers_, header);
   return TIZENCLAW_ERROR_NONE;
 }
 
 int tizenclaw_curl_set_post_data(tizenclaw_curl_h curl, const char* data) {
   if (!curl || !data) return TIZENCLAW_ERROR_INVALID_PARAMETER;
-  CURLcode res = curl_easy_setopt(curl->curl, CURLOPT_POSTFIELDS, data);
+  TizenClawCurl* instance = static_cast<TizenClawCurl*>(curl);
+  CURLcode res = curl_easy_setopt(instance->curl_, CURLOPT_POSTFIELDS, data);
   return (res == CURLE_OK) ? TIZENCLAW_ERROR_NONE : TIZENCLAW_ERROR_IO_ERROR;
 }
 
 int tizenclaw_curl_set_method_get(tizenclaw_curl_h curl) {
   if (!curl) return TIZENCLAW_ERROR_INVALID_PARAMETER;
-  CURLcode res = curl_easy_setopt(curl->curl, CURLOPT_HTTPGET, 1L);
+  TizenClawCurl* instance = static_cast<TizenClawCurl*>(curl);
+  CURLcode res = curl_easy_setopt(instance->curl_, CURLOPT_HTTPGET, 1L);
   return (res == CURLE_OK) ? TIZENCLAW_ERROR_NONE : TIZENCLAW_ERROR_IO_ERROR;
 }
 
 int tizenclaw_curl_set_timeout(tizenclaw_curl_h curl, long connect_timeout, long request_timeout) {
   if (!curl) return TIZENCLAW_ERROR_INVALID_PARAMETER;
-  curl_easy_setopt(curl->curl, CURLOPT_CONNECTTIMEOUT, connect_timeout);
-  curl_easy_setopt(curl->curl, CURLOPT_TIMEOUT, request_timeout);
+  TizenClawCurl* instance = static_cast<TizenClawCurl*>(curl);
+  curl_easy_setopt(instance->curl_, CURLOPT_CONNECTTIMEOUT, connect_timeout);
+  curl_easy_setopt(instance->curl_, CURLOPT_TIMEOUT, request_timeout);
   return TIZENCLAW_ERROR_NONE;
 }
 
 int tizenclaw_curl_set_write_callback(
     tizenclaw_curl_h curl, tizenclaw_curl_chunk_cb callback, void* user_data) {
   if (!curl) return TIZENCLAW_ERROR_INVALID_PARAMETER;
-  curl->user_cb = callback;
-  curl->user_data = user_data;
-  curl_easy_setopt(curl->curl, CURLOPT_WRITEFUNCTION, tizenclaw_curl_s::WriteCallback);
-  curl_easy_setopt(curl->curl, CURLOPT_WRITEDATA, curl);
+  TizenClawCurl* instance = static_cast<TizenClawCurl*>(curl);
+  instance->user_cb_ = callback;
+  instance->user_data_ = user_data;
+  curl_easy_setopt(instance->curl_, CURLOPT_WRITEFUNCTION, TizenClawCurl::WriteCallback);
+  curl_easy_setopt(instance->curl_, CURLOPT_WRITEDATA, instance);
   return TIZENCLAW_ERROR_NONE;
 }
 
 int tizenclaw_curl_perform(tizenclaw_curl_h curl) {
   if (!curl) return TIZENCLAW_ERROR_INVALID_PARAMETER;
+  TizenClawCurl* instance = static_cast<TizenClawCurl*>(curl);
 
-  if (curl->headers) {
-    curl_easy_setopt(curl->curl, CURLOPT_HTTPHEADER, curl->headers);
+  if (instance->headers_) {
+    curl_easy_setopt(instance->curl_, CURLOPT_HTTPHEADER, instance->headers_);
   }
 
-  curl->errbuf[0] = 0;
-  CURLcode res = curl_easy_perform(curl->curl);
+  instance->errbuf_[0] = 0;
+  CURLcode res = curl_easy_perform(instance->curl_);
 
-  curl_easy_getinfo(curl->curl, CURLINFO_RESPONSE_CODE, &curl->response_code);
+  curl_easy_getinfo(instance->curl_, CURLINFO_RESPONSE_CODE, &instance->response_code_);
 
   if (res != CURLE_OK) {
-    const char* err = curl->errbuf[0] ? curl->errbuf : curl_easy_strerror(res);
-    dlog_print(DLOG_ERROR, LOG_TAG, "CURL perform error: %s", err);
+    const char* err = instance->errbuf_[0] ? instance->errbuf_ : curl_easy_strerror(res);
+    dlog_print(DLOG_ERROR, kLogTag, "CURL perform error: %s", err);
     return TIZENCLAW_ERROR_IO_ERROR;
   }
 
@@ -167,11 +179,13 @@ int tizenclaw_curl_perform(tizenclaw_curl_h curl) {
 
 int tizenclaw_curl_get_response_code(tizenclaw_curl_h curl, long* code) {
   if (!curl || !code) return TIZENCLAW_ERROR_INVALID_PARAMETER;
-  *code = curl->response_code;
+  TizenClawCurl* instance = static_cast<TizenClawCurl*>(curl);
+  *code = instance->response_code_;
   return TIZENCLAW_ERROR_NONE;
 }
 
 const char* tizenclaw_curl_get_error_message(tizenclaw_curl_h curl) {
   if (!curl) return NULL;
-  return curl->errbuf[0] ? curl->errbuf : "Unknown or no error";
+  TizenClawCurl* instance = static_cast<TizenClawCurl*>(curl);
+  return instance->errbuf_[0] ? instance->errbuf_ : "Unknown or no error";
 }
