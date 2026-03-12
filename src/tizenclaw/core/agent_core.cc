@@ -35,6 +35,7 @@
 #include "../llm/plugin_llm_backend.hh"
 #include "../llm/plugin_manager.hh"
 #include "../storage/audit_logger.hh"
+#include "tool_indexer.hh"
 
 namespace tizenclaw {
 
@@ -1442,6 +1443,10 @@ std::vector<LlmToolDecl> AgentCore::LoadSkillDeclarations() {
   tools.push_back(forget_tool);
 
 
+  // Regenerate tool index files
+  ToolIndexer::RegenerateAll(
+      "/opt/usr/share/tizenclaw/tools");
+
   cached_tools_ = tools;
   cached_tools_loaded_.store(true);
   return tools;
@@ -1455,10 +1460,12 @@ void AgentCore::ReloadSkills() {
   }
   cached_tools_loaded_.store(false);
 
-  // Force reload and rebuild system prompt
+  // Force reload, regenerate indexes, and rebuild
+  // system prompt
   auto tools = LoadSkillDeclarations();
   system_prompt_ = BuildSystemPrompt(tools);
-  LOG(INFO) << "Skill reload complete: " << tools.size() << " tools";
+  LOG(INFO) << "Skill reload complete: "
+            << tools.size() << " tools";
 }
 
 std::string AgentCore::LoadSystemPrompt(const nlohmann::json& config) {
@@ -1523,50 +1530,17 @@ std::string AgentCore::BuildSystemPrompt(
     tool_list += "- " + t.name + ": " + t.description + "\n";
   }
 
-  // Load embedded tool descriptions from MD
+  // Load aggregated tool catalog from tools.md
   {
-    namespace fs = std::filesystem;
-    const std::string embedded_dir = "/opt/usr/share/tizenclaw/tools/embedded";
-    std::error_code ec;
-    if (fs::exists(embedded_dir, ec)) {
-      std::string embedded_docs;
-      for (const auto& entry : fs::directory_iterator(embedded_dir, ec)) {
-        if (!entry.is_regular_file()) continue;
-        if (entry.path().extension() != ".md") continue;
-        std::ifstream in(entry.path());
-        if (!in.is_open()) continue;
-        std::string content((std::istreambuf_iterator<char>(in)),
-                            std::istreambuf_iterator<char>());
-        if (!content.empty()) {
-          embedded_docs += "\n" + content + "\n";
-        }
-      }
-      if (!embedded_docs.empty()) {
-        tool_list += "\n## Embedded Tool Details\n" + embedded_docs;
-      }
-    }
-  }
-
-  // Load action tool descriptions from MD
-  {
-    namespace fs = std::filesystem;
-    const std::string actions_dir = "/opt/usr/share/tizenclaw/tools/actions";
-    std::error_code ec;
-    if (fs::exists(actions_dir, ec)) {
-      std::string action_docs;
-      for (const auto& entry : fs::directory_iterator(actions_dir, ec)) {
-        if (!entry.is_regular_file()) continue;
-        if (entry.path().extension() != ".md") continue;
-        std::ifstream in(entry.path());
-        if (!in.is_open()) continue;
-        std::string content((std::istreambuf_iterator<char>(in)),
-                            std::istreambuf_iterator<char>());
-        if (!content.empty()) {
-          action_docs += "\n" + content + "\n";
-        }
-      }
-      if (!action_docs.empty()) {
-        tool_list += "\n## Device Action Details\n" + action_docs;
+    const std::string tools_md_path =
+        "/opt/usr/share/tizenclaw/tools/tools.md";
+    std::ifstream in(tools_md_path);
+    if (in.is_open()) {
+      std::string catalog(
+          (std::istreambuf_iterator<char>(in)),
+          std::istreambuf_iterator<char>());
+      if (!catalog.empty()) {
+        tool_list += "\n" + catalog + "\n";
       }
     }
   }
