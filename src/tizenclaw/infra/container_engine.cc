@@ -702,9 +702,9 @@ bool ContainerEngine::WriteSkillsConfig() const {
       "options": ["rbind", "ro"]
     },
     {
-      "destination": "/lib64",
+      "destination": "/lib",
       "type": "bind",
-      "source": "/lib64",
+      "source": "/lib",
       "options": ["rbind", "ro"]
     },
     {
