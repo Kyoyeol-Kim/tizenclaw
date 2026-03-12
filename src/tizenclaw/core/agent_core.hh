@@ -29,9 +29,11 @@
 #include "../infra/health_monitor.hh"
 #include "../llm/llm_backend.hh"
 #include "../storage/session_store.hh"
+#include "../storage/memory_store.hh"
 #include "agent_role.hh"
 #include "tool_policy.hh"
 #include "action_bridge.hh"
+#include <functional>
 #include <mutex>
 
 #include "../scheduler/task_scheduler.hh"
@@ -127,6 +129,12 @@ class AgentCore {
   std::string ExecuteRagOp(const std::string& operation,
                            const nlohmann::json& args);
 
+  // Execute memory operations
+  // (remember, recall, forget)
+  std::string ExecuteMemoryOp(
+      const std::string& operation,
+      const nlohmann::json& args);
+
   // Execute custom skill management operations
   std::string ExecuteCustomSkillOp(const nlohmann::json& args);
 
@@ -145,6 +153,9 @@ class AgentCore {
   // Build final system prompt with dynamic
   // skill list
   std::string BuildSystemPrompt(const std::vector<LlmToolDecl>& tools);
+
+  // Initialize tool dispatcher map
+  void InitializeToolDispatcher();
 
   // Try fallback backends on primary failure
   LlmResponse TryFallbackBackends(
@@ -204,6 +215,17 @@ class AgentCore {
 
   // Embedding store for RAG
   EmbeddingStore embedding_store_;
+
+  // Memory store for persistent memory
+  MemoryStore memory_store_;
+
+  // Tool dispatch map (name -> handler)
+  //   args, tool_name, session_id
+  using ToolHandler = std::function<std::string(
+      const nlohmann::json&, const std::string&,
+      const std::string&)>;
+  std::unordered_map<std::string, ToolHandler>
+      tool_dispatch_;
 
   // Task scheduler (owned by daemon)
   TaskScheduler* scheduler_ = nullptr;

@@ -86,6 +86,17 @@ void AgentCore::MaintenanceLoop() {
 
       // Reset activity time so we don't spam flush
       last_activity_time_.store(0);
+
+      // Regenerate memory summary if dirty
+      if (memory_store_.IsSummaryDirty()) {
+        memory_store_.RegenerateSummary();
+        LOG(INFO) << "Memory summary regenerated "
+                  << "(idle)";
+      }
+
+      // Prune old memory entries
+      memory_store_.PruneShortTerm();
+      memory_store_.PruneEpisodic();
     }
   }
 }
@@ -218,6 +229,16 @@ bool AgentCore::Initialize() {
     LOG(WARNING) << "Tizen Action bridge init failed " << "(non-fatal)";
     action_bridge_.reset();
   }
+
+  // Initialize memory store
+  std::string mem_config_path =
+      std::string(APP_DATA_DIR) +
+      "/config/memory_config.json";
+  memory_store_.LoadConfig(mem_config_path);
+  LOG(INFO) << "MemoryStore initialized";
+
+  // Initialize tool dispatcher map
+  InitializeToolDispatcher();
 
   // Start background maintenance thread immediately
   UpdateActivityTime();
@@ -428,32 +449,10 @@ std::string AgentCore::ProcessPrompt(
         }
 
         auto start = std::chrono::steady_clock::now();
-        if (tc.name == "execute_code") {
-          std::string code = tc.args.value("code", "");
-          r.output = ExecuteCode(code);
-        } else if (tc.name == "file_manager") {
-          std::string op = tc.args.value("operation", "");
-          std::string path = tc.args.value("path", "");
-          std::string content = tc.args.value("content", "");
-          r.output = ExecuteFileOp(op, path, content);
-        } else if (tc.name == "create_task" || tc.name == "list_tasks" ||
-                   tc.name == "cancel_task") {
-          r.output = ExecuteTaskOp(tc.name, tc.args);
-        } else if (tc.name == "create_session" || tc.name == "list_sessions" ||
-                   tc.name == "send_to_session") {
-          r.output = ExecuteSessionOp(tc.name, tc.args, session_id);
-        } else if (tc.name == "manage_custom_skill") {
-          r.output = ExecuteCustomSkillOp(tc.args);
-        } else if (tc.name == "ingest_document" ||
-                   tc.name == "search_knowledge") {
-          r.output = ExecuteRagOp(tc.name, tc.args);
-        } else if (tc.name == "run_supervisor" ||
-                   tc.name == "list_agent_roles") {
-          r.output = ExecuteSupervisorOp(tc.name, tc.args, session_id);
-        } else if (tc.name == "create_pipeline" ||
-                   tc.name == "list_pipelines" || tc.name == "run_pipeline" ||
-                   tc.name == "delete_pipeline") {
-          r.output = ExecutePipelineOp(tc.name, tc.args, session_id);
+        auto it = tool_dispatch_.find(tc.name);
+        if (it != tool_dispatch_.end()) {
+          r.output = it->second(
+              tc.args, tc.name, session_id);
         } else if (tc.name == "execute_action" ||
                    tc.name.starts_with("action_")) {
           r.output = ExecuteActionOp(tc.name, tc.args);
@@ -467,6 +466,15 @@ std::string AgentCore::ProcessPrompt(
         session_store_.LogSkillExecution(
             session_id, tc.name, tc.args,
             r.output.substr(0, std::min((size_t)200, r.output.size())),
+            static_cast<int>(elapsed));
+        // Record to episodic memory
+        memory_store_.RecordSkillExecution(
+            tc.name, tc.args,
+            r.output.substr(
+                0, std::min((size_t)200,
+                            r.output.size())),
+            r.output.find("\"error\"") ==
+                std::string::npos,
             static_cast<int>(elapsed));
         AuditLogger::Instance().Log(AuditLogger::MakeEvent(
             AuditEventType::kToolExecution, session_id,
@@ -1247,6 +1255,109 @@ std::vector<LlmToolDecl> AgentCore::LoadSkillDeclarations() {
     tools.push_back(exec_action_tool);
   }
 
+  // Built-in tool: remember (memory)
+  LlmToolDecl remember_tool;
+  remember_tool.name = "remember";
+  remember_tool.description =
+      "Save important information to "
+      "long-term or episodic memory. Use "
+      "this to remember user preferences, "
+      "important facts, or lessons learned.";
+  remember_tool.parameters = {
+      {"type", "object"},
+      {"properties",
+       {{"title",
+         {{"type", "string"},
+          {"description",
+           "Short title for this memory "
+           "(used as filename)"}}},
+        {"content",
+         {{"type", "string"},
+          {"description",
+           "The information to remember "
+           "(concise summary)"}}},
+        {"type",
+         {{"type", "string"},
+          {"enum",
+           nlohmann::json::array(
+               {"long-term", "episodic"})},
+          {"description",
+           "Memory type: 'long-term' for "
+           "persistent facts, 'episodic' "
+           "for event records"}}},
+        {"tags",
+         {{"type", "array"},
+          {"items", {{"type", "string"}}},
+          {"description",
+           "Tags for categorization"}}},
+        {"importance",
+         {{"type", "string"},
+          {"enum",
+           nlohmann::json::array(
+               {"low", "medium", "high"})},
+          {"description",
+           "Importance level"}}}}},
+      {"required",
+       nlohmann::json::array(
+           {"title", "content"})}};
+  tools.push_back(remember_tool);
+
+  // Built-in tool: recall (memory)
+  LlmToolDecl recall_tool;
+  recall_tool.name = "recall";
+  recall_tool.description =
+      "Search and retrieve information from "
+      "memory. Use this to recall user "
+      "preferences, past events, or any "
+      "previously stored information.";
+  recall_tool.parameters = {
+      {"type", "object"},
+      {"properties",
+       {{"type",
+         {{"type", "string"},
+          {"enum",
+           nlohmann::json::array(
+               {"long-term", "episodic",
+                "all"})},
+          {"description",
+           "Memory type to search "
+           "(default: all)"}}},
+        {"keyword",
+         {{"type", "string"},
+          {"description",
+           "Keyword to search for in "
+           "memory titles and content"}}}}},
+      {"required",
+       nlohmann::json::array({"keyword"})}};
+  tools.push_back(recall_tool);
+
+  // Built-in tool: forget (memory)
+  LlmToolDecl forget_tool;
+  forget_tool.name = "forget";
+  forget_tool.description =
+      "Delete a specific memory entry. "
+      "Use this when the user asks to "
+      "remove previously stored information.";
+  forget_tool.parameters = {
+      {"type", "object"},
+      {"properties",
+       {{"type",
+         {{"type", "string"},
+          {"enum",
+           nlohmann::json::array(
+               {"long-term", "episodic"})},
+          {"description",
+           "Memory type to delete from"}}},
+        {"filename",
+         {{"type", "string"},
+          {"description",
+           "The filename of the memory "
+           "entry to delete"}}}}},
+      {"required",
+       nlohmann::json::array(
+           {"type", "filename"})}};
+  tools.push_back(forget_tool);
+
 
   cached_tools_ = tools;
   cached_tools_loaded_.store(true);
@@ -1375,6 +1486,14 @@ std::string AgentCore::BuildSystemPrompt(
         tool_list += "\n## Device Action Details\n" + action_docs;
       }
     }
+  }
+
+  // Replace {{MEMORY_CONTEXT}} placeholder
+  const std::string mem_ph = "{{MEMORY_CONTEXT}}";
+  size_t mem_pos = prompt.find(mem_ph);
+  if (mem_pos != std::string::npos) {
+    prompt.replace(mem_pos, mem_ph.size(),
+                   memory_store_.LoadSummary());
   }
 
   // Replace {{AVAILABLE_TOOLS}} placeholder
@@ -2277,6 +2396,253 @@ std::string AgentCore::ExecuteCustomSkillOp(const nlohmann::json& args) {
   }
 
   return "{\"error\": \"Unknown operation: " + op + "\"}";
+}
+
+}  // namespace tizenclaw
+
+// clang-format off
+// NOLINTBEGIN
+// These are at the end of the file to avoid
+// disrupting the existing code structure.
+// clang-format on
+// NOLINTEND
+
+namespace tizenclaw {
+
+void AgentCore::InitializeToolDispatcher() {
+  tool_dispatch_["execute_code"] =
+      [this](const nlohmann::json& args,
+             const std::string&,
+             const std::string&) {
+        return ExecuteCode(
+            args.value("code", ""));
+      };
+
+  tool_dispatch_["file_manager"] =
+      [this](const nlohmann::json& args,
+             const std::string&,
+             const std::string&) {
+        return ExecuteFileOp(
+            args.value("operation", ""),
+            args.value("path", ""),
+            args.value("content", ""));
+      };
+
+  for (const auto& n :
+       {"create_task", "list_tasks",
+        "cancel_task"}) {
+    tool_dispatch_[n] =
+        [this](const nlohmann::json& args,
+               const std::string& name,
+               const std::string&) {
+          return ExecuteTaskOp(name, args);
+        };
+  }
+
+  for (const auto& n :
+       {"create_session", "list_sessions",
+        "send_to_session"}) {
+    tool_dispatch_[n] =
+        [this](const nlohmann::json& args,
+               const std::string& name,
+               const std::string& sid) {
+          return ExecuteSessionOp(
+              name, args, sid);
+        };
+  }
+
+  tool_dispatch_["manage_custom_skill"] =
+      [this](const nlohmann::json& args,
+             const std::string&,
+             const std::string&) {
+        return ExecuteCustomSkillOp(args);
+      };
+
+  for (const auto& n :
+       {"ingest_document",
+        "search_knowledge"}) {
+    tool_dispatch_[n] =
+        [this](const nlohmann::json& args,
+               const std::string& name,
+               const std::string&) {
+          return ExecuteRagOp(name, args);
+        };
+  }
+
+  for (const auto& n :
+       {"run_supervisor",
+        "list_agent_roles"}) {
+    tool_dispatch_[n] =
+        [this](const nlohmann::json& args,
+               const std::string& name,
+               const std::string& sid) {
+          return ExecuteSupervisorOp(
+              name, args, sid);
+        };
+  }
+
+  for (const auto& n :
+       {"create_pipeline", "list_pipelines",
+        "run_pipeline", "delete_pipeline"}) {
+    tool_dispatch_[n] =
+        [this](const nlohmann::json& args,
+               const std::string& name,
+               const std::string& sid) {
+          return ExecutePipelineOp(
+              name, args, sid);
+        };
+  }
+
+  // Memory tools
+  for (const auto& n :
+       {"remember", "recall", "forget"}) {
+    tool_dispatch_[n] =
+        [this](const nlohmann::json& args,
+               const std::string& name,
+               const std::string&) {
+          return ExecuteMemoryOp(name, args);
+        };
+  }
+
+  LOG(INFO) << "Tool dispatcher initialized ("
+            << tool_dispatch_.size()
+            << " handlers)";
+}
+
+std::string AgentCore::ExecuteMemoryOp(
+    const std::string& operation,
+    const nlohmann::json& args) {
+  if (operation == "remember") {
+    MemoryEntry entry;
+    std::string type_str =
+        args.value("type", "long-term");
+    entry.type = (type_str == "episodic")
+                     ? MemoryType::kEpisodic
+                     : MemoryType::kLongTerm;
+    entry.title = args.value("title", "");
+    entry.content = args.value("content", "");
+    entry.importance =
+        args.value("importance", "medium");
+
+    if (args.contains("tags") &&
+        args["tags"].is_array()) {
+      for (const auto& t : args["tags"])
+        entry.tags.push_back(
+            t.get<std::string>());
+    }
+
+    if (entry.title.empty()) {
+      return "{\"error\": "
+             "\"title is required\"}";
+    }
+
+    bool ok = memory_store_.WriteMemory(entry);
+    return ok
+               ? nlohmann::json(
+                     {{"status", "saved"},
+                      {"type", type_str},
+                      {"title", entry.title}})
+                     .dump()
+               : "{\"error\": "
+                 "\"write failed\"}";
+  }
+
+  if (operation == "recall") {
+    std::string keyword =
+        args.value("keyword", "");
+    std::string type_str =
+        args.value("type", "all");
+
+    nlohmann::json results =
+        nlohmann::json::array();
+
+    auto search_type =
+        [&](MemoryType mt) {
+          auto files =
+              memory_store_.ListMemories(mt);
+          for (const auto& f : files) {
+            if (!keyword.empty() &&
+                f.find(keyword) ==
+                    std::string::npos) {
+              // Check content too
+              auto entry =
+                  memory_store_.ReadMemory(mt, f);
+              if (!entry) continue;
+              if (entry->title.find(keyword) ==
+                      std::string::npos &&
+                  entry->content.find(keyword) ==
+                      std::string::npos)
+                continue;
+              results.push_back(
+                  {{"type",
+                    MemoryStore::
+                        TypeToString(mt) +
+                        ""},
+                   {"filename", f},
+                   {"title", entry->title},
+                   {"content",
+                    entry->content}});
+            } else {
+              auto entry =
+                  memory_store_.ReadMemory(mt, f);
+              if (!entry) continue;
+              results.push_back(
+                  {{"type",
+                    MemoryStore::
+                        TypeToString(mt) +
+                        ""},
+                   {"filename", f},
+                   {"title", entry->title},
+                   {"content",
+                    entry->content}});
+            }
+          }
+        };
+
+    if (type_str == "long-term" ||
+        type_str == "all")
+      search_type(MemoryType::kLongTerm);
+    if (type_str == "episodic" ||
+        type_str == "all")
+      search_type(MemoryType::kEpisodic);
+
+    return nlohmann::json(
+               {{"results", results},
+                {"count", results.size()}})
+        .dump();
+  }
+
+  if (operation == "forget") {
+    std::string type_str =
+        args.value("type", "");
+    std::string filename =
+        args.value("filename", "");
+
+    if (type_str.empty() || filename.empty()) {
+      return "{\"error\": "
+             "\"type and filename "
+             "are required\"}";
+    }
+
+    MemoryType mt =
+        (type_str == "episodic")
+            ? MemoryType::kEpisodic
+            : MemoryType::kLongTerm;
+
+    bool ok =
+        memory_store_.DeleteMemory(mt, filename);
+    return ok
+               ? nlohmann::json(
+                     {{"status", "deleted"},
+                      {"filename", filename}})
+                     .dump()
+               : "{\"error\": "
+                 "\"not found\"}";
+  }
+
+  return "{\"error\": \"Unknown memory "
+         "operation: " +
+         operation + "\"}";
 }
 
 }  // namespace tizenclaw
