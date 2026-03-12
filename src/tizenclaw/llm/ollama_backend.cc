@@ -132,9 +132,15 @@ LlmResponse OllamaBackend::Chat(
     const std::string& system_prompt) {
   bool streaming = (on_chunk != nullptr);
   auto ollama_msgs = ToOllamaMessages(messages);
+  //if (!system_prompt.empty()) {
+  //  ollama_msgs.insert(ollama_msgs.begin(),
+  //                     {{"role", "system"}, {"content", system_prompt}});
+  //}
   if (!system_prompt.empty()) {
-    ollama_msgs.insert(ollama_msgs.begin(),
-                       {{"role", "system"}, {"content", system_prompt}});
+    nlohmann::json system_msg = nlohmann::json::object();
+    system_msg["role"] = "system";
+    system_msg["content"] = system_prompt;
+    ollama_msgs.insert(ollama_msgs.begin(), system_msg);
   }
   nlohmann::json payload = {
       {"model", model_}, {"messages", ollama_msgs}, {"stream", streaming}};
