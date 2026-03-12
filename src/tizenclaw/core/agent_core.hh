@@ -39,6 +39,7 @@
 #include "../scheduler/task_scheduler.hh"
 #include "../storage/embedding_store.hh"
 #include "pipeline_executor.hh"
+#include "workflow_engine.hh"
 
 namespace tizenclaw {
 
@@ -101,6 +102,14 @@ class AgentCore {
   [[nodiscard]] std::string ExecutePipelineOp(const std::string& operation,
                                               const nlohmann::json& args,
                                               const std::string& session_id);
+
+  // Execute workflow operations
+  // (create_workflow, list_workflows,
+  //  run_workflow, delete_workflow)
+  [[nodiscard]] std::string ExecuteWorkflowOp(
+      const std::string& operation,
+      const nlohmann::json& args,
+      const std::string& session_id);
 
   // Execute Tizen Action Framework operations
   // (list_actions, execute_action)
@@ -238,6 +247,9 @@ class AgentCore {
 
   // Pipeline executor for workflows
   std::unique_ptr<PipelineExecutor> pipeline_executor_;
+
+  // Workflow engine for MD-based workflows
+  std::unique_ptr<WorkflowEngine> workflow_engine_;
 
   // Tizen Action Framework bridge
   std::unique_ptr<ActionBridge> action_bridge_;

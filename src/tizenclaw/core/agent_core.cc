@@ -214,6 +214,11 @@ bool AgentCore::Initialize() {
   pipeline_executor_->LoadPipelines();
   LOG(INFO) << "Pipeline executor ready";
 
+  // Initialize workflow engine
+  workflow_engine_ = std::make_unique<WorkflowEngine>(this);
+  workflow_engine_->LoadWorkflows();
+  LOG(INFO) << "Workflow engine ready";
+
   // Initialize Tizen Action Framework bridge
   action_bridge_ = std::make_unique<ActionBridge>();
   if (action_bridge_->Start()) {
@@ -1200,6 +1205,84 @@ std::vector<LlmToolDecl> AgentCore::LoadSkillDeclarations() {
          {{"type", "string"}, {"description", "The pipeline ID to delete"}}}}},
       {"required", nlohmann::json::array({"pipeline_id"})}};
   tools.push_back(delete_pipeline_tool);
+
+  // Built-in tool: create_workflow
+  LlmToolDecl create_workflow_tool;
+  create_workflow_tool.name = "create_workflow";
+  create_workflow_tool.description =
+      "Create a workflow from Markdown text. "
+      "The markdown must include YAML "
+      "frontmatter (---) with 'name' field "
+      "and '## Step N:' sections with "
+      "type/instruction/tool_name/output_var "
+      "metadata. Steps execute sequentially "
+      "with {{variable}} interpolation.";
+  create_workflow_tool.parameters = {
+      {"type", "object"},
+      {"properties",
+       {{"markdown",
+         {{"type", "string"},
+          {"description",
+           "Markdown text with YAML "
+           "frontmatter and Step sections"}}}}},
+      {"required",
+       nlohmann::json::array({"markdown"})}};
+  tools.push_back(create_workflow_tool);
+
+  // Built-in tool: list_workflows
+  LlmToolDecl list_workflows_tool;
+  list_workflows_tool.name = "list_workflows";
+  list_workflows_tool.description =
+      "List all registered workflows with "
+      "their names, descriptions, triggers, "
+      "and step counts.";
+  list_workflows_tool.parameters = {
+      {"type", "object"},
+      {"properties", nlohmann::json::object()},
+      {"required", nlohmann::json::array()}};
+  tools.push_back(list_workflows_tool);
+
+  // Built-in tool: run_workflow
+  LlmToolDecl run_workflow_tool;
+  run_workflow_tool.name = "run_workflow";
+  run_workflow_tool.description =
+      "Execute a workflow by its ID. "
+      "Optionally provide input variables "
+      "that can be referenced in steps "
+      "via {{variable}} syntax.";
+  run_workflow_tool.parameters = {
+      {"type", "object"},
+      {"properties",
+       {{"workflow_id",
+         {{"type", "string"},
+          {"description",
+           "The workflow ID to execute"}}},
+        {"input_vars",
+         {{"type", "object"},
+          {"description",
+           "Input variables (key-value "
+           "pairs) for steps"}}}}},
+      {"required",
+       nlohmann::json::array(
+           {"workflow_id"})}};
+  tools.push_back(run_workflow_tool);
+
+  // Built-in tool: delete_workflow
+  LlmToolDecl delete_workflow_tool;
+  delete_workflow_tool.name = "delete_workflow";
+  delete_workflow_tool.description =
+      "Delete a workflow by its ID.";
+  delete_workflow_tool.parameters = {
+      {"type", "object"},
+      {"properties",
+       {{"workflow_id",
+         {{"type", "string"},
+          {"description",
+           "The workflow ID to delete"}}}}},
+      {"required",
+       nlohmann::json::array(
+           {"workflow_id"})}};
+  tools.push_back(delete_workflow_tool);
 
 
   if (action_bridge_) {
@@ -2216,6 +2299,105 @@ std::string AgentCore::ExecutePipelineOp(const std::string& operation,
   return result.dump();
 }
 
+std::string AgentCore::ExecuteWorkflowOp(
+    const std::string& operation,
+    const nlohmann::json& args,
+    const std::string& session_id) {
+  (void)session_id;  // Reserved for future use
+  if (!workflow_engine_) {
+    return "{\"error\": "
+           "\"WorkflowEngine not available\"}";
+  }
+
+  nlohmann::json result;
+
+  if (operation == "create_workflow") {
+    std::string md =
+        args.value("markdown", "");
+    if (md.empty()) {
+      result = {{"error",
+                 "markdown content is required"}};
+    } else {
+      std::string id =
+          workflow_engine_->CreateWorkflow(md);
+      if (id.empty()) {
+        result = {{"error",
+                   "Failed to create workflow. "
+                   "name and steps are required "
+                   "in markdown."}};
+      } else {
+        result = {{"status", "ok"},
+                  {"workflow_id", id}};
+      }
+    }
+  } else if (operation == "list_workflows") {
+    auto workflows =
+        workflow_engine_->ListWorkflows();
+    result = {
+        {"status", "ok"},
+        {"workflows", workflows},
+        {"count",
+         static_cast<int>(workflows.size())}};
+  } else if (operation == "run_workflow") {
+    std::string wid =
+        args.value("workflow_id", "");
+    if (wid.empty()) {
+      result = {{"error",
+                 "workflow_id is required"}};
+    } else {
+      nlohmann::json input_vars = args.value(
+          "input_vars",
+          nlohmann::json::object());
+      auto run_result =
+          workflow_engine_->RunWorkflow(
+              wid, input_vars);
+
+      nlohmann::json steps_json =
+          nlohmann::json::array();
+      for (const auto& [step_id, step_result] :
+           run_result.step_results) {
+        steps_json.push_back(
+            {{"step_id", step_id},
+             {"result",
+              step_result.substr(
+                  0, std::min((size_t)500,
+                              step_result.size()))}});
+      }
+
+      result = {
+          {"status", run_result.status},
+          {"workflow_id",
+           run_result.workflow_id},
+          {"duration_ms",
+           run_result.duration_ms},
+          {"steps", steps_json}};
+    }
+  } else if (operation == "delete_workflow") {
+    std::string wid =
+        args.value("workflow_id", "");
+    if (wid.empty()) {
+      result = {{"error",
+                 "workflow_id is required"}};
+    } else {
+      bool ok =
+          workflow_engine_->DeleteWorkflow(wid);
+      if (ok) {
+        result = {{"status", "ok"},
+                  {"deleted", wid}};
+      } else {
+        result = {{"error",
+                   "Workflow not found: " + wid}};
+      }
+    }
+  } else {
+    result = {{"error",
+               "Unknown workflow operation: " +
+                   operation}};
+  }
+
+  return result.dump();
+}
+
 std::string AgentCore::ExecuteActionOp(const std::string& operation,
                                        const nlohmann::json& args) {
 #ifdef TIZEN_ACTION_ENABLED
@@ -2489,6 +2671,18 @@ void AgentCore::InitializeToolDispatcher() {
                const std::string& name,
                const std::string& sid) {
           return ExecutePipelineOp(
+              name, args, sid);
+        };
+  }
+
+  for (const auto& n :
+       {"create_workflow", "list_workflows",
+        "run_workflow", "delete_workflow"}) {
+    tool_dispatch_[n] =
+        [this](const nlohmann::json& args,
+               const std::string& name,
+               const std::string& sid) {
+          return ExecuteWorkflowOp(
               name, args, sid);
         };
   }
