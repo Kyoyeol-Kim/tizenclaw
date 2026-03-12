@@ -1,7 +1,7 @@
 # TizenClaw System Design Document
 
-> **Last Updated**: 2026-03-09
-> **Version**: 2.1
+> **Last Updated**: 2026-03-12
+> **Version**: 2.2
 
 ---
 
@@ -127,7 +127,8 @@ The central orchestration engine implementing the **Agentic Loop**:
 - **Edge Memory Management**: The `MaintenanceLoop` aggressively monitors idle time, calling `malloc_trim(0)` and `sqlite3_release_memory` after 5 minutes of inactivity to reclaim PSS memory.
 - **Multi-Session**: Concurrent agent sessions with per-session system prompt and history isolation
 - **Unified Backend Selection**: `SwitchToBestBackend()` algorithm dynamically selects the active backend based on a unified priority queue (`Plugin` > `active_backend` > `fallback_backends`).
-- **Built-in Tools**: `execute_code`, `file_manager`, `create_task`, `list_tasks`, `cancel_task`, `create_session`, `list_sessions`, `send_to_session`, `ingest_document`, `search_knowledge`, `execute_action`, `action_<name>` (per-action tools)
+- **Built-in Tools**: `execute_code`, `file_manager`, `create_task`, `list_tasks`, `cancel_task`, `create_session`, `list_sessions`, `send_to_session`, `ingest_document`, `search_knowledge`, `execute_action`, `action_<name>` (per-action tools), `remember`, `recall`, `forget` (persistent memory)
+- **Tool Dispatch**: `std::unordered_map<string, ToolHandler>` for O(1) dispatch with `starts_with` fallback for dynamically named tools (e.g., `action_*`)
 
 ### 3.3 LLM Backend Layer
 
@@ -209,8 +210,16 @@ All storage uses **Markdown with YAML frontmatter** (no external DB dependency e
 ├── tasks/task-{id}.md               ← Scheduled tasks
 ├── tools/actions/{name}.md          ← Action schema cache (auto-synced, device-specific)
 ├── tools/embedded/{name}.md         ← Embedded tool schemas (installed via RPM)
+├── memory/
+│   ├── memory.md                    ← Auto-generated summary (idle-time dirty-flag update)
+│   ├── long-term/{date}-{title}.md  ← User preferences, persistent facts
+│   ├── episodic/{date}-{skill}.md   ← Skill execution history (auto-recorded)
+│   └── short-term/{session_id}/     ← Session-scoped recent commands
+├── config/memory_config.json        ← Memory retention periods & size limits
 └── knowledge/embeddings.db          ← SQLite vector store (RAG)
 ```
+
+- **Memory Subsystem**: `MemoryStore` class (`memory_store.hh/cc`) provides CRUD for three memory types, YAML-frontmatter Markdown format, dirty-flag based `memory.md` summary regeneration during idle, configurable retention via `memory_config.json`, and automatic `RecordSkillExecution()` for episodic memory.
 
 ### 3.8 Tizen Action Framework Bridge (`action_bridge.cc`)
 
@@ -321,9 +330,13 @@ To ensure the Planning Agent makes realistic plans, all dynamic RPK plugins, CLI
 Instead of polling, the system reacts to granular events (e.g. `sensor.changed`, `network.disconnected`, `user.command.received`, `action.failed`) to maintain state freshness without CPU taxation.
 
 **4. Memory Structure**
-- *Short-term*: Current dialog, recent commands, immediate fail reasons.
-- *Long-term*: User preferences, typical usage profiles.
-- *Episodic*: Historical records of which skill executions succeeded/failed under specific conditions.
+- *Short-term*: Session-scoped (`short-term/{session_id}/`), recent commands (max 50 per session, 24h retention), summarized data only.
+- *Long-term*: User preferences, persistent facts (`long-term/{date}-{title}.md`, max 2KB per file).
+- *Episodic*: Historical records of skill executions (`episodic/{date}-{skill}.md`, max 2KB, 30-day retention).
+- *Summary*: `memory.md` (max 8KB) auto-regenerated during idle periods via dirty-flag, includes recent activity (last 5), long-term summaries, and recent episodic entries (last 10).
+- *LLM Tools*: `remember` (save to long-term/episodic), `recall` (search by keyword), `forget` (delete specific entry).
+- *Configuration*: `memory_config.json` with per-type retention periods and size limits.
+- *System Prompt Integration*: `{{MEMORY_CONTEXT}}` placeholder injects `memory.md` content into system prompt.
 
 **5. Embedded Design Principles**
 - **Selective Context Injection**: Only provide the necessary state to the LLM (interpreted state rather than raw data—e.g., `[network: disconnected, reason: dns_timeout]` is better than 1,000 lines of `dlog`).

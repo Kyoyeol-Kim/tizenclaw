@@ -1,7 +1,7 @@
 # TizenClaw 설계 문서
 
-> **최종 업데이트**: 2026-03-09
-> **버전**: 2.1
+> **최종 업데이트**: 2026-03-12
+> **버전**: 2.2
 
 ---
 
@@ -127,7 +127,8 @@ graph TB
 - **엣지 메모리 최적화**: `MaintenanceLoop`가 유휴 시간을 적극 모니터링하여, 5분 비활성 시 `malloc_trim(0)` 및 `sqlite3_release_memory`를 호출해 PSS 메모리를 회수합니다.
 - **멀티 세션**: 세션별 시스템 프롬프트와 히스토리 격리를 통한 동시 에이전트 세션
 - **통합 백엔드 선택**: `SwitchToBestBackend()` 알고리즘을 통해 단일 우선순위 큐(`Plugin` > `active_backend` > `fallback_backends`)를 기반으로 동적으로 활성 백엔드를 선택합니다.
-- **내장 도구**: `execute_code`, `file_manager`, `create_task`, `list_tasks`, `cancel_task`, `create_session`, `list_sessions`, `send_to_session`, `ingest_document`, `search_knowledge`, `execute_action`, `action_<name>` (Per-action 도구)
+- **내장 도구**: `execute_code`, `file_manager`, `create_task`, `list_tasks`, `cancel_task`, `create_session`, `list_sessions`, `send_to_session`, `ingest_document`, `search_knowledge`, `execute_action`, `action_<name>` (Per-action 도구), `remember`, `recall`, `forget` (영속 메모리)
+- **도구 디스패치**: `std::unordered_map<string, ToolHandler>` O(1) 조회, 동적 이름 도구(예: `action_*`)는 `starts_with` 폴백 처리
 
 ### 3.3 LLM 백엔드 계층
 
@@ -209,8 +210,16 @@ class Channel {
 ├── tasks/task-{id}.md               ← 예약 태스크
 ├── tools/actions/{name}.md          ← Action 스키마 캐시 (디바이스별, 자동 동기화)
 ├── tools/embedded/{name}.md         ← 내장 도구 스키마 (RPM으로 설치)
+├── memory/
+│   ├── memory.md                    ← 자동 생성 요약 (idle 시 dirty-flag 기반 갱신)
+│   ├── long-term/{date}-{title}.md  ← 사용자 선호, 영속 사실
+│   ├── episodic/{date}-{skill}.md   ← 스킬 실행 이력 (자동 기록)
+│   └── short-term/{session_id}/     ← 세션별 최근 명령
+├── config/memory_config.json        ← 메모리 보존 주기 및 크기 제한
 └── knowledge/embeddings.db          ← SQLite 벡터 저장소 (RAG)
 ```
+
+- **메모리 서브시스템**: `MemoryStore` 클래스(`memory_store.hh/cc`)가 3개 메모리 타입에 대한 CRUD, YAML-frontmatter Markdown 형식, idle 시 dirty-flag 기반 `memory.md` 요약 갱신, `memory_config.json`을 통한 설정 가능한 보존 주기, `RecordSkillExecution()`을 통한 자동 episodic 메모리 기록을 제공합니다.
 
 ### 3.8 Tizen Action Framework 브릿지 (`action_bridge.cc`)
 
@@ -318,10 +327,14 @@ Planning Agent가 현실적인 계획을 세우려면, 동적으로 로드된 RP
 **3. 이벤트 버스 (Event-Driven Updates)**
 지속적인 폴링 대신 `sensor.changed`, `network.disconnected`, `action.failed` 같은 세분화된 이벤트에 반응하여 CPU 소모 없이 상태를 최신화합니다.
 
-**4. 메모리 구조의 분리**
-- *단기 (Short-term)*: 현재 대화, 직전 에러 사유
-- *장기 (Long-term)*: 사용자 프로파일, 장치 사용 패턴
-- *에피소드 (Episodic)*: 특정 조건에서의 성공 및 실패 액션 기록
+**4. 메모리 구조**
+- *단기 (Short-term)*: 세션별 분리 (`short-term/{session_id}/`), 최근 명령 (세션당 최대 50개, 24시간 보존), 요약 데이터만 저장.
+- *장기 (Long-term)*: 사용자 선호, 영속 사실 (`long-term/{date}-{title}.md`, 파일당 최대 2KB).
+- *에피소드 (Episodic)*: 스킬 실행 이력 자동 기록 (`episodic/{date}-{skill}.md`, 최대 2KB, 30일 보존).
+- *요약*: `memory.md` (최대 8KB) idle 시 dirty-flag 기반 자동 갱신. Recent Activity (최근 5건), Long-term 요약, Recent Episodic (최근 10건) 포함.
+- *LLM 도구*: `remember` (long-term/episodic 저장), `recall` (키워드 검색), `forget` (특정 항목 삭제).
+- *설정*: `memory_config.json`으로 타입별 보존 주기 및 크기 제한 설정 가능.
+- *시스템 프롬프트 통합*: `{{MEMORY_CONTEXT}}` placeholder로 `memory.md` 내용을 system prompt에 주입.
 
 **5. 임베디드 설계 원칙 반영**
 - **선택적 컨텍스트 주입 (Selective Context Injection)**: `[network: disconnected, reason: dns_timeout]` 처럼 정제되고 해석된 상태값만 LLM에 전달.

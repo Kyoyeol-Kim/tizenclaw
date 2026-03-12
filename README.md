@@ -141,6 +141,7 @@ sdb shell systemctl restart tizenclaw
 - **Web Admin Dashboard** — Dark glassmorphism SPA on port 9090 with session monitoring, chat interface, config editor, and admin authentication.
 - **Multi-Agent** — Supervisor agent pattern, skill pipelines, A2A protocol for cross-device agent collaboration.
 - **Session Persistence** — Conversation history stored as Markdown with YAML frontmatter, surviving daemon restarts.
+- **Persistent Memory** — Long-term, episodic, and session-scoped short-term memory with LLM tools (`remember`, `recall`, `forget`). Configurable retention via `memory_config.json`, idle-time summary regeneration, and automatic skill execution tracking.
 - **Tool Schema Discovery** — Embedded tool and Action Framework schemas stored as Markdown files under `/opt/usr/share/tizenclaw/tools/`, automatically loaded into the LLM system prompt for precise tool invocation.
 - **Health Monitoring** — Prometheus-style `/api/metrics` endpoint with live dashboard health panel (CPU, memory, uptime, request counts).
 - **OTA Updates** — Over-the-air skill updates via HTTP pull, version checking against remote manifest, and automatic rollback on failure.
@@ -224,7 +225,7 @@ TizenClaw ships with **35 container skills** (Python, OCI sandbox) and **10+ bui
 | **Display & Hardware** | 6 | `control_display`, `control_volume`, `control_haptic`, `control_led` |
 | **Media & Content** | 5 | `get_metadata`, `get_media_content`, `get_mime_type`, `get_sound_devices` |
 | **System Actions** | 6 | `download_file` ⚡, `send_notification`, `schedule_alarm`, `play_tone`, `web_search` |
-| **Built-in Tools** | 12+ | `execute_code`, `file_manager`, `manage_custom_skill`, `create_task`, `search_knowledge` |
+| **Built-in Tools** | 15+ | `execute_code`, `file_manager`, `manage_custom_skill`, `create_task`, `search_knowledge`, `remember`, `recall`, `forget` |
 
 > ⚡ = Async skill using tizen-core event loop
 
@@ -337,6 +338,7 @@ TizenClaw reads its configuration from `/opt/usr/share/tizenclaw/` on the device
 | `webhook_config.json` | Webhook route mapping and HMAC secrets |
 | `tool_policy.json` | Tool execution policy (max iterations, blocked skills, risk overrides) |
 | `agent_roles.json` | Agent roles and specialized system prompts |
+| `memory_config.json` | Memory retention periods, size limits, and summary parameters |
 
 ### Example: LLM Backend (`llm_config.json`)
 
@@ -401,6 +403,7 @@ tizenclaw/
 │       │   └── web_dashboard.cc   #   Admin SPA (port 9090)
 │       ├── storage/               # Data persistence
 │       │   ├── session_store.cc   #   Markdown sessions
+│       │   ├── memory_store.cc    #   Persistent memory (long-term, episodic, short-term)
 │       │   ├── embedding_store.cc #   SQLite RAG vectors
 │       │   └── audit_logger.cc    #   Audit logging
 │       ├── infra/                 # Infrastructure
